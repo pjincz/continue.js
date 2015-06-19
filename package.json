@@ -1,0 +1,23 @@
+{
+  "name": "continue.js",
+  "version": "0.1.0",
+  "description": "A very easy and clean async flow controller",
+  "main": "lib/continue.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jinchizhong/continue"
+  },
+  "keywords": [
+    "async",
+    "flow controll"
+  ],
+  "homepage": "https://github.com/jinchizhong/continue",
+  "author": {
+    "name": "Chizhong Jin",
+    "email": "jinchizhong@kingsoft.com"
+  },
+  "license": "BSD"
+}
