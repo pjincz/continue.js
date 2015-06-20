@@ -168,6 +168,90 @@ If you want to share variables between blocks, A easiest way is set the variable
       c();
     }).end();
 
-### Exception work flow
+### Error flow
+
+Error flow in continue.js is similar to promise.js.
+continue.js has 2 status, `healthy` or `err`.
+When one block is complete, continue.js will become to `healthy` or `err`, depends how you finish the block.
+If you use `c()`, continue.js status will be `healthy`, if you throw a error in block, it will be `err`
+Then continue.js goto the next block. If next block matched current status, continue.js will run the block.
+And update self status. If next block not matched, continue.js will just skip the block.
+
+What is the matched? It's very easy, `healthy` match `normal block`, `err` match `err deal block`.
+All we show above is the `normal block`. `err deal block` is also very simple.
+
+    # 2 formats for normal blocks
+    }).then(function (c) {
+
+    })(function (c) {
+
+    # 3 formats for err deal block
+    }).err(function (c) {
+
+    }).err(function (err, c) {
+
+    })(function (err, c) {
+
+In normal blocks, `c.args` && `c.value` are arguments from prev blocks. And `c.err` will always be null.  
+In err deal blocks, `c.args` && `c.value` will always be empty. And `c.err` will from prev block.
+
+After all, the status of continue.js will pass to `End Node`.
+
+If the `end blocks` do not have a callback function and the status of continue.js is `err`, continue.js will throw a Error.
+
+If you do not hope continue.js throw Errors, or you want to known the last status, you can
+pass a callback function to the end, the callback argument of the `end blocks` is different to other blocks.
+    
+      ....
+    }).end(function (err, c) {
+      // err can be null or other value, depends continue.js status
+    });
+
+### assigner
+
+Assigner is the most powerful feature in continue.js. And lucky, it's so easy.
+
+As we see above, we have a progrem to read file content. Before we use assigner:
+
+    $(function (c) {
+      fs.readFile('xxx.txt', c);
+    })(function (c) {
+      if (c.args[0]) {
+        throw c.args[0];
+      }
+      res.send(c.args[1]);
+      c();
+    }).end();
+
+It's looks not so good. Let's reconstruct is will assigner
+
+    $(function (c) {
+      fs.readFile('xxx.txt', c.assigner('err', 'fileContent'));
+    })(function (c) {
+      res.send(c.fileContent);
+      c();
+    }).end();
+
+Assigner is a helper agent, it will assign callback argument to `c` one by one.
+And `c.err` is also assignable, and it have special design.
+If you assign a true value(such as object, string...) to `c.err`, continue.js will turn to `err` status.
+Else, continue.js will turn to `healthy` status.
+
+At above code, we assign 1st callback argument to `c.err`. It's so exactly, fs.readFile will set err to 1st argument.
+If any error raised during read file, continue.js will turn to `err` automaticly.
+It's so smart. And If everything is ok, Express.js will send the content back.
+And you can deal error in `end node` together, or just let it throw to express.js
+
+Assigner has an enhance version, name assigner2. Follow code will show you what's the different:
+
+    var email = {}
+    $(function (c) {
+      email.to = 'tom@example.com';
+      fs.readFile('xxx.html', c.assigner2(c, 'err', email, 'html');   // c.err = args[0], email.html = args[1]
+    })(function (c) {
+      fs.readFile('xxx.txt', c.assigner2(c, 'err', email, 'text');    // c.err = args[0], email.text = args[1]
+    })(function (c) {
+      sendmail.send(email, c);
+    }).end();
 
 

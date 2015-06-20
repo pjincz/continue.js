@@ -128,25 +128,24 @@ describe('continue.js', function () {
   });
   it('test assigner2', function (done) {
     var x = {};
+    var y = {};
     S(function (c) {
-      mock_func2('test', 1234, c.assigner2(x, 'x', 'y'));
+      mock_func2('test', 1234, c.assigner2(x, 'x', y, 'y'));
     })(function (c) {
       assert.equal(x.x, 'test');
-      assert.equal(x.y, 1234);
+      assert.equal(y.y, 1234);
       c();
     }).end(done);
   });
-  it('test null_or_err', function (done) {
+  it('change err by assigner', function (done) {
+    var x = {};
     S(function (c) {
-      mock_func(null, c.null_or_err());
-    })(function (err, c) {
-      throw 'never over here';
-    })(function (c) {
-      mock_func('test', c.null_or_err());
+      mock_func2('error', 1234, c.assigner2(c, 'err', x, 'value'));
     })(function (c) {
       throw 'never over here';
     })(function (err, c) {
-      assert.equal(err, 'test');
+      assert.equal(c.err, 'error');
+      assert.equal(x.value, 1234);
       c();
     }).end(done);
   });
