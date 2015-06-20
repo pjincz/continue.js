@@ -24,3 +24,52 @@ Design objective
 1. Most case can be done in 1 level nesting
 
 2. Instinctive
+
+Design defect
+-------------
+
+S....end must matched. Otherwise, actions in continue.js will not invoked.
+
+Each block each path must end with continue action. Otherwise, actions chains will break.
+
+But, I think they are not big problems, because of if you forget it, program will not work correctly.
+
+Install
+-------
+
+    npm install 'git+https://github.com/jinchizhong/continue.js'
+
+Usage
+-----
+
+### Basic
+
+    S = require('continue');
+
+    # normal format
+    S.then(function (c) {
+      console.log('hello');
+      setTimeout(c, 1000);
+    }).then(function(c) {
+      console.log('world');
+      setTimeout(c, 1000);
+    }).then(function(c) {
+      console.log('!!!');
+      c();
+    }).end();
+
+    # or short format
+    S(function (c) {
+      console.log('hello');
+      setTimeout(c, 1000);
+    })(function (c) {
+      console.log('world');
+      setTimeout(c, 1000);
+    })(function (c) {
+      console.log('!!!');
+      c();
+    }).end();
+
+### Start
+
+    
