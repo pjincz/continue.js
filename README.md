@@ -44,7 +44,7 @@ Usage
 
 ### Basic
 
-    S = require('continue');
+    S = require('continue.js');
 
     # normal format
     S.then(function (c) {
