@@ -116,7 +116,7 @@ This is not a bug. I consider this for a long time, If keep `Auto Transfer` feat
 It will bring lots' of chaos and complex, not only in library codes, but also in working codes.
 It will let your code nesting level exploded.
 
-So, I give `Auto Transfer` at least. As a result, each block and Each path in block have to have a 
+So, I give `Auto Transfer` at least. As a result, each block(except `end block`) and Each path in block have to have a 
 `Transfer Action` in the end.
 
 You can invoke `Transfer Action` is 3 ways:
