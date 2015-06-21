@@ -108,16 +108,10 @@ There are also 2 formats
     # for some reason, I defined an alias for end. You can use this too, if you like `done` more then `end`
     }).done();
 
-### Transfer Action
+### Forward
 
-When you transfer from one block to another block, `Transfer Action` is required.
-Unlike promise.js or other libraries. If you lack `Transfer Action`, continue.js will breaked.
-This is not a bug. I consider this for a long time, If keep `Auto Transfer` feature, 
-It will bring lots' of chaos and complex, not only in library codes, but also in working codes.
-It will let your code nesting level exploded.
-
-So, I give `Auto Transfer` at least. As a result, each block(except `end block`) and Each path in block have to have a 
-`Transfer Action` in the end.
+When you transfer from one block to another block, `Forward Action` is required.
+Unlike promise.js or other libraries. If you lack `Forward Action`, continue.js will breaked.
 
 You can invoke `Transfer Action` is 3 ways:
 
@@ -139,6 +133,10 @@ You can invoke `Transfer Action` is 3 ways:
       throw 'test';         // for more details, see `Error flow` below
     })(function (c) {
       ....
+
+If you want to terminal the chain, just ignore `c()`.
+
+Warning: `c()` should not be invoked more then one time, this will make a invoke tree. This feature is still in development.
 
 ### Arguments in `c()`
 
@@ -254,4 +252,15 @@ Assigner has an enhance version, name assigner2. Follow code will show you what'
       sendmail.send(email, c);
     }).end();
 
+If some parameters you do not want, you can pass null to assigner to ignore it:
 
+    func(c.assigner(null, 'value'));
+    func(c.assigner2(null, null, c, 'value'));   // notice: in assigner2, you must use 2 null to ignore 1 parameter
+
+Assigner also can be used for simulate parameter number.
+In some case, argument number is used for distinguish callback kind.
+For example, in express, `function(res, rep, next)` is used for normal middleware,
+and `function(err, res, rep, next)` is used for error handle middleware.
+If you want simulate a 3 parameters function:
+
+    app.on(c.assigner('req', 'res', 'next');
