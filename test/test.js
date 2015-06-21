@@ -38,6 +38,11 @@ describe('continue.js', function () {
       c();
     }).end(done);
   });
+  it('call by apply', function () {
+    S(function (c) {
+      c.apply(this, {});
+    }).end();
+  });
   it('pass value by attr', function (done) {
     S(function (c) {
       c.x = 123;
@@ -46,6 +51,16 @@ describe('continue.js', function () {
       assert.equal(c.x, 123);
       c();
     }).end(done);
+  });
+  it('exception', function () {
+    try {
+      S(function (c) {
+        throw 'test';
+      }).end();
+    }
+    catch (err) {
+      assert.equal(err, 'test');
+    }
   });
   it('sync', function () {
     S(function (c) {
