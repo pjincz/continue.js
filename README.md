@@ -34,7 +34,7 @@ Design objective
 Design defect
 -------------
 
-S....end must matched. Otherwise, actions in continue.js will not invoked.
+C....end must matched. Otherwise, actions in continue.js will not invoked.
 
 Each block each path must end with continue action. Otherwise, actions chains will break.
 
@@ -50,10 +50,10 @@ Usage
 
 ### Basic
 
-    S = require('continue.js');
+    var C = require('continue.js');
 
     # normal format
-    S.then(function (c) {
+    C.then(function (c) {
       console.log('hello');
       setTimeout(c, 1000);
     }).then(function(c) {
@@ -65,7 +65,7 @@ Usage
     }).end();
 
     # or short format
-    S(function (c) {
+    C(function (c) {
       console.log('hello');
       setTimeout(c, 1000);
     })(function (c) {
@@ -78,16 +78,15 @@ Usage
 
 ### Start Node
 
-continue.js start will `Start Node`. So, I always name it `S`.
 You have 2 format to begin your continue.js
 
     # normal format
-    S.then(function (c) {
+    C.then(function (c) {
         ....
     })
 
     # short format
-    S(function (c) {
+    C(function (c) {
         ....
     })
 
@@ -149,7 +148,7 @@ Warning: `c()` should not be invoked more then one time, this will make a invoke
 continue.js run blocks one by one. For this, you can get arguments from the last block callback.
 You can access `c.args` for all arguments from last block, or `c.value` for first arguments from last block.
 
-    $(function (c) {
+    C(function (c) {
       fs.readFile('xxx.txt', c);    // callback(err, data)
     })(function (c) {
       if (c.args[0]) {
@@ -165,7 +164,7 @@ You can access `c.args` for all arguments from last block, or `c.value` for firs
 
 If you want to share variables between blocks, A easiest way is set the variable to `c`.
 
-    $(function (c) {
+    C(function (c) {
       c.server = app.listen(3000, c);
     })(function (c) {
       console.log('Express.js listen on http://%s:%s', c.server.address().address, c.server.address().port);
@@ -220,7 +219,7 @@ Assigner is the most powerful feature in continue.js. And lucky, it's so easy.
 
 As we see above, we have a progrem to read file content. Before we use assigner:
 
-    $(function (c) {
+    C(function (c) {
       fs.readFile('xxx.txt', c);
     })(function (c) {
       if (c.args[0]) {
@@ -232,7 +231,7 @@ As we see above, we have a progrem to read file content. Before we use assigner:
 
 It's looks not so good. Let's reconstruct is will assigner
 
-    $(function (c) {
+    C(function (c) {
       fs.readFile('xxx.txt', c.assigner('err', 'fileContent'));
     })(function (c) {
       res.send(c.fileContent);
@@ -252,7 +251,7 @@ And you can deal error in `end node` together, or just let it throw to express.j
 Assigner has an enhance version, name assigner2. Follow code will show you what's the different:
 
     var email = {}
-    $(function (c) {
+    C(function (c) {
       email.to = 'tom@example.com';
       fs.readFile('xxx.html', c.assigner2(c, 'err', email, 'html');   // c.err = args[0], email.html = args[1]
     })(function (c) {
