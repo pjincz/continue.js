@@ -3,10 +3,11 @@ continue.js
 
 A very easy and clean async flow controller
 
-[BSD Licensed](http://opensource.org/licenses/BSD-3-Clause)
+BSD Licensed
 -----------------------------------------------------------
 
-All files under this repo is [BSD licensed](http://opensource.org/licenses/BSD-3-Clause).
+This software may be modified and distributed under the terms
+of the BSD license.  See the [LICENSE](https://github.com/jinchizhong/continue.js/blob/master/LICENSE) file for details.
 
 Why
 ---
