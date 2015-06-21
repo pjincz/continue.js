@@ -166,6 +166,9 @@ If you want to share variables between blocks, A easiest way is set the variable
       c();
     }).end();
 
+Notice: `c.args` `c.value` `c.err` will changed automatic, do not use them for storage.
+Warning: `c._c_xxx` is reversed for internal use, use them may cause unexcept result.
+
 ### Error flow
 
 Error flow in continue.js is similar to promise.js.

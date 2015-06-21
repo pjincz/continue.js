@@ -62,6 +62,12 @@ describe('continue.js', function () {
       assert.equal(err, 'test');
     }
   });
+  it('next name conflict', function () {
+    S(function (c) {
+      c.next = 123;
+      c();
+    }).end();
+  });
   it('sync', function () {
     S(function (c) {
       c.x = 123;
