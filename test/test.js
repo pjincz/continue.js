@@ -111,6 +111,27 @@ describe('continue.js', function () {
       done();
     });
   });
+  it('test report', function (done) {
+    var func = function(err, v) {
+      assert.equal(err, null);
+      assert.equal(v, 'hello');
+      done();
+    };
+    S(function (c) {
+      c.x = 'hello';
+      c();
+    }).report('x', func);
+  });
+  it('test report 2', function (done) {
+    var func = function(err, v) {
+      assert.equal(err, 'an error');
+      assert.equal(v, null);
+      done();
+    };
+    S(function (c) {
+      throw 'an error';
+    }).report('x', func);
+  });
   it('alias .err(err, c)', function (done) {
     S(function (c) {
       throw 'test';
