@@ -62,8 +62,8 @@ continue.js 1.x
 4. 在`safe`模式下抛出异常（范例见上）
 
 逻辑块分两种：
-* 正常块: function(c, locals)...
-* 异常块: function(err, c, locals)...
+* 正常块
+* 异常块
 
 详情参见异常处理。
 
@@ -223,10 +223,8 @@ API
 
 ### Start Node
 
-* S -> Node
-      开始一个默认链
 * S() -> Node
-      等同于`S`
+      开始一个默认链
 * S(opts...) -> Node
       开始一个带选项的链
       'safe': 捕捉逻辑块中发生的异常，并将链状态转为异常状态
