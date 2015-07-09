@@ -295,6 +295,7 @@ API
 * Node.toPromise(var) -> Promise.<locals[var] | locals.err>
       Promise结束拼接器，并返回一个Promise
       var同样支持深层次获取
+      如果var不制定，默认获取locals.args[0]
 
 ### c
 
@@ -344,6 +345,11 @@ API
         locals.mail.text = 'aaa';
         c('aaa');
       通过这个特征，可以给数组中的特点元素复制（但是实际价值不大）
+      另外可以通过c.assign()模拟函数参数个数，例如：
+        c.length  ---> 0
+        c.assign('err')  ---> 1
+        c.assign('err', 'books')  ---> 2
+        c.assign(null, null)  ---> 2     // null will skip assign
 
 * c.assign2(...) -> assign2\_wrap<c>
       返回一个c的代理，这个代理将调用参数依次赋值给指定变量的指定的成员。
@@ -353,6 +359,7 @@ API
         mail.html = '<h1>hello</h1>';
         c(null, 'hello', '<h1>hello</h1>';
       assign2同样可以进行深层次赋值
+      assign2同样可以用于参数个数模拟
 
 * c.locals -> locals
       获取locals（当你参数懒得写, locals时）

@@ -19,5 +19,8 @@
     "name": "Chizhong Jin",
     "email": "jinchizhong@kingsoft.com"
   },
-  "license": "BSD-3-Clause"
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "promise": "^7.0.3"
+  }
 }
