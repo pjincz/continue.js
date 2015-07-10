@@ -302,35 +302,21 @@ describe('continue.js', function () {
     }).stdend(done);
   });
   it('promise', function(done) {
-    C().then(function() {
-      return mock_promise(true, 123);
+    C().then(function(c) {
+      mock_promise(true, 123).then(c.accept, c.reject);
     }).then(function(c, locals, value) {
       assert.equal(value, 123);
       assert.equal(locals.args[0], 123);
-      return mock_promise(false, 234);
+      mock_promise(false, 234).then(c.accept, c.reject);
     }).fail(function(err, c, locals) {
       assert.equal(err, 234);
       assert.equal(locals.args[0], 234);
-      return mock_promise(true, 333);
+      mock_promise(true, 333).then(c.accept, c.reject);
     }).always(function(err, c, locals) {
       assert.equal(err, null);
       assert.equal(locals.args[0], 333);
-      return mock_promise(true);
+      mock_promise(true).then(c.accept, c.reject);
     }).stdend(done);
-  });
-  it('do not return c', function() {
-    assert.throws(function () {
-      C().then(function(c) {
-        return c;
-      }).stdend();
-    });
-  });
-  it('do not return block', function() {
-    assert.throws(function () {
-      C().then(function(c) {
-        return C();
-      }).stdend();
-    });
   });
   it('do not call c() twice', function() {
     assert.throws(function () {

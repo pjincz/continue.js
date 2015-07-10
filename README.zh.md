@@ -217,20 +217,12 @@ continue.js 1.x
       // return a promise, if locals.err is null, locals.fileCont will set as promise value, otherwise promise will turn to rejected.
     }
 
-### 和Promise合作(实验性)
+### 和Promise合作
 
     // 将`continue.js`链转换为Promise
     return C().then(...).toPromise();
 
-    // 在逻辑块中使用Promise（实验性）
-    C().then(function() {
-      return User.find(123);
-    }).then(function(c, locals, user) {
-      console.log(user);
-      c();
-    }).stdend();
-
-    // 由于js中无法非常正确的判断Promise，如果上面的方法失败，推荐使用下面的方法：
+    // 在逻辑块中使用Promise
     C().then(function() {
       User.find(123).then(c.accept, c.reject);
     }).then(function(c, locals, user) {
