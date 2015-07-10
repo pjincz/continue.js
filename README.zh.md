@@ -30,8 +30,8 @@ continue.js 1.x
 `continue.js` 链为 `continue.js` 使用的核心，一个典型的 `continue.js` 链由3个部分组成。
 
 * 起点：`C(opts...)`
-* 逻辑块：`.then(...)`
-* 结束：`.end(...)`
+* 逻辑块：`.then(...)`, `.fail(...)`, `.always(...)`
+* 结束：`.last(...)`, `.end(...)`, `.stdend(...)`, `.toPromise(...)`
 
 ### 起点
 

@@ -1,4 +1,5 @@
 var assert = require('assert');
+var Promise = require('promise');
 var C = require('../lib/continue.js');
 
 describe('self test', function () {
@@ -12,7 +13,19 @@ var mock_callback = function() {
   var args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
   setTimeout(function() {
     callback.apply(this, args);
-  }, 10);
+  }, 1);
+};
+
+var mock_promise = function(s, val) {
+  return new Promise(function(fullfil, reject) {
+    setTimeout(function() {
+      if (s) {
+        fullfil(val);
+      } else {
+        reject(val);
+      }
+    }, 1);
+  });
 };
 
 describe('continue.js', function () {
@@ -287,5 +300,44 @@ describe('continue.js', function () {
       assert.equal(locals.err2, 'test error');
       c();
     }).stdend(done);
+  });
+  it('promise', function(done) {
+    C().then(function() {
+      return mock_promise(true, 123);
+    }).then(function(c, locals, value) {
+      assert.equal(value, 123);
+      assert.equal(locals.args[0], 123);
+      return mock_promise(false, 234);
+    }).fail(function(err, c, locals) {
+      assert.equal(err, 234);
+      assert.equal(locals.args[0], 234);
+      return mock_promise(true, 333);
+    }).always(function(err, c, locals) {
+      assert.equal(err, null);
+      assert.equal(locals.args[0], 333);
+      return mock_promise(true);
+    }).stdend(done);
+  });
+  it('do not return c', function() {
+    assert.throws(function () {
+      C().then(function(c) {
+        return c;
+      }).stdend();
+    });
+  });
+  it('do not return block', function() {
+    assert.throws(function () {
+      C().then(function(c) {
+        return C();
+      }).stdend();
+    });
+  });
+  it('do not call c() twice', function() {
+    assert.throws(function () {
+      C().then(function(c) {
+        c();
+        c();
+      }).stdend();
+    });
   });
 });
