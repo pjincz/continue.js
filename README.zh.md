@@ -265,162 +265,162 @@ API
 
 * Node.then(callback) -> Node
 
-    增加一个正常逻辑块
-    callback: function(c, locals)
-    callback: function(c, locals, args...)
+        增加一个正常逻辑块
+        callback: function(c, locals)
+        callback: function(c, locals, args...)
 
 * Node.fail(callback) -> Node
 
-    增加一个异常逻辑块
-    callback: function(c, locals)
-    callback: function(c, locals, args...)
+        增加一个异常逻辑块
+        callback: function(c, locals)
+        callback: function(c, locals, args...)
 
 * Node.always(callback) -> Node
 
-    增加一个通用逻辑块，无论当前是否异常，都会被执行，可用于资源回收，但是要注意c.break会跳过always！
-    callback: function(c, locals)
-    callback: function(c, locals, args...)
+        增加一个通用逻辑块，无论当前是否异常，都会被执行，可用于资源回收，但是要注意c.break会跳过always！
+        callback: function(c, locals)
+        callback: function(c, locals, args...)
 
 * Node.last(callback) -> null
 
-    结束块，大部分时候用不到，用于在结束的时候做一些结束逻辑，或者拼接一些特殊的回调
-    callback: function(c, locals)
+        结束块，大部分时候用不到，用于在结束的时候做一些结束逻辑，或者拼接一些特殊的回调
+        callback: function(c, locals)
 
 * Node.end([silent Boolean], [assign\_list...], [callback]) -> null
 
-    通用结束回调拼接器
-    silent: [optional, Boolean, default = false] 可选参数，必须为Boolean, 表示当链异常结束时是否沉默（不抛出异常）。默认为抛出异常。
-    assign_list: [optional, String] 将locals.var_name作为参数传递给callback，可以有多个。
-    callback: [optional, Function] 当链结束时，会调用这个回调函数。
+        通用结束回调拼接器
+        silent: [optional, Boolean, default = false] 可选参数，必须为Boolean, 表示当链异常结束时是否沉默（不抛出异常）。默认为抛出异常。
+        assign_list: [optional, String] 将locals.var_name作为参数传递给callback，可以有多个。
+        callback: [optional, Function] 当链结束时，会调用这个回调函数。
     
-    .end('fileCont', callback) 等价于:
+        .end('fileCont', callback) 等价于:
 
-      .last(function(c, locals) {
-        if (c.lastErr) {
-          throw c.lastErr;
-        }
-        callback(locals.fileCont);
-      });
+          .last(function(c, locals) {
+            if (c.lastErr) {
+              throw c.lastErr;
+            }
+            callback(locals.fileCont);
+          });
 
-    .end(true, '$lastErr', 'fileCont', callback) 等价于:
+        .end(true, '$lastErr', 'fileCont', callback) 等价于:
 
-      .last(function(c, locals) {
-        callback(c.lastErr, locals.fileCont);
-      });
+          .last(function(c, locals) {
+            callback(c.lastErr, locals.fileCont);
+          });
 
-    assign_list 支持深层次的获取变量，例如
+        assign_list 支持深层次的获取变量，例如
 
-    .end('mail.text', callback) 等价于:
+        .end('mail.text', callback) 等价于:
 
-      .last(function(c, locals) {
-        if (c.lastErr) {
-          throw c.lastErr;
-        }
-        if (locals.mail === undefined) {
-          callback(undefined);
-        } else {
-          callback(locals.mail.text);
-        }
-      });
+          .last(function(c, locals) {
+            if (c.lastErr) {
+              throw c.lastErr;
+            }
+            if (locals.mail === undefined) {
+              callback(undefined);
+            } else {
+              callback(locals.mail.text);
+            }
+          });
 
-    另外可以通过这个特性获取数组中的变量，主要是为了获取args[0]等，例如
-    .end('$args.0', '$args.1', callback);
+        另外可以通过这个特性获取数组中的变量，主要是为了获取args[0]等，例如
+        .end('$args.0', '$args.1', callback);
 
 * Node.stdend([assign\_list], [callback]) -> null
 
-    标准结束回调拼接器，用于适配标准回调函数
-    等价于Node.end(true, 'err', [assign_list], [callback]);
+        标准结束回调拼接器，用于适配标准回调函数
+        等价于Node.end(true, 'err', [assign_list], [callback]);
 
 * Node.toPromise(var) -> Promise.<locals[var] | c.lastErr>
 
-    Promise结束拼接器，并返回一个Promise
-    var同样支持深层次获取
-    如果var不指定，默认获取c.args[0]
+        Promise结束拼接器，并返回一个Promise
+        var同样支持深层次获取
+        如果var不指定，默认获取c.args[0]
 
 ### c
 
 * c(...) -> null
 
-    触发控制器，进入下一个逻辑块，如果没有下一个逻辑块，则结束
-    传递给c的参数将被赋值到下一个块的c.args
-    c(...)不会主动修改c.err，因此可以主动给c.err赋值使得`continue.js`进入异常状态。
+        触发控制器，进入下一个逻辑块，如果没有下一个逻辑块，则结束
+        传递给c的参数将被赋值到下一个块的c.args
+        c(...)不会主动修改c.err，因此可以主动给c.err赋值使得`continue.js`进入异常状态。
 
 * c.accept -> accept\_wrap<c>
 * c.accept(...) -> null
 
-    等价于
-      c.err = null;
-      c(...);
-    这个函数主要用于promise拼接。
+        等价于
+          c.err = null;
+          c(...);
+        这个函数主要用于promise拼接。
 
 * c.reject -> reject\_wrap<c>
 * c.reject(err) -> null
 
-    等价于
-      c.err = err;
-      c(...);
-    适用于某些回调函数仅仅在异常时被执行，而不是通过第一个参数传递err。例如Promise的第二个回调。
+        等价于
+          c.err = err;
+          c(...);
+        适用于某些回调函数仅仅在异常时被执行，而不是通过第一个参数传递err。例如Promise的第二个回调。
 
 * c.break -> break\_wrap<c>
 * c.break(...) -> null
 
-    等价于
-      // do not do as this!!!
-      while(c.next.next) {
-        c.next = c.next.next;
-      }
-      c.breaked = true;
-      c(...);
-    终止`continue.js`链，并直接跳转到结束节点。
-    c.break不会设置异常状态，如果需要设置异常并跳转到结束节点，可以主动设置local.err
-    或者和assign, reject连用
+        等价于
+          // do not do as this!!!
+          while(c.next.next) {
+            c.next = c.next.next;
+          }
+          c.breaked = true;
+          c(...);
+        终止`continue.js`链，并直接跳转到结束节点。
+        c.break不会设置异常状态，如果需要设置异常并跳转到结束节点，可以主动设置local.err
+        或者和assign, reject连用
 
 * c.assign(...) -> assign\_wrap<c>
 
-    返回一个c的代理，这个代理将调用参数依次赋值给locals上指定的成员。
-    例如c.assign('a', 'b', 'c')(1, 2, 3)等价于：
-      locals.a = 1;
-      locals.b = 2;
-      locals.c = 3;
-      c(1, 2, 3);
-    assign可以进行深层次的赋值，例如 c.assign('mail.text', 'xxx.0')('aaa', 'bbb') 等价于：
-      if (locals.mail === undefined) {
-        locals.mail = {};
-      }
-      if (locals.xxx === undefined) {
-        locals.xxx = {};
-      }
-      locals.mail.text = 'aaa';
-      locals.xxx[0] = 'bbb';
-      c('aaa', 'bbb');
-    当assign的名字以$打头时，assign将会操作c，例如 c.assign('$err')('test err') 等价于：
-      c.err = 'test err';
-      c('test err');
-    另外可以通过c.assign()模拟函数参数个数，例如：
-      c.length  ---> 0
-      c.assign('err')  ---> 1
-      c.assign('err', 'books')  ---> 2
-      c.assign(null, null)  ---> 2     // null will skip assign
+        返回一个c的代理，这个代理将调用参数依次赋值给locals上指定的成员。
+        例如c.assign('a', 'b', 'c')(1, 2, 3)等价于：
+          locals.a = 1;
+          locals.b = 2;
+          locals.c = 3;
+          c(1, 2, 3);
+        assign可以进行深层次的赋值，例如 c.assign('mail.text', 'xxx.0')('aaa', 'bbb') 等价于：
+          if (locals.mail === undefined) {
+            locals.mail = {};
+          }
+          if (locals.xxx === undefined) {
+            locals.xxx = {};
+          }
+          locals.mail.text = 'aaa';
+          locals.xxx[0] = 'bbb';
+          c('aaa', 'bbb');
+        当assign的名字以$打头时，assign将会操作c，例如 c.assign('$err')('test err') 等价于：
+          c.err = 'test err';
+          c('test err');
+        另外可以通过c.assign()模拟函数参数个数，例如：
+          c.length  ---> 0
+          c.assign('err')  ---> 1
+          c.assign('err', 'books')  ---> 2
+          c.assign(null, null)  ---> 2     // null will skip assign
 
 * c.locals -> locals
 
-    获取locals（当你参数懒得写, locals时）
+        获取locals（当你参数懒得写, locals时）
 
 * c.lastErr
 
-    上一个块结束时的错误信息
+        上一个块结束时的错误信息
 
 * c.err
 
-    当前块的错误信息，如果当前块结束的时候不为空，`continue.js`进入错误流
+        当前块的错误信息，如果当前块结束的时候不为空，`continue.js`进入错误流
 
 * c.args
 
-    上一个块中c被调用时的参数
+        上一个块中c被调用时的参数
 
 * c.breaked
 
-    标志c.break是否被触发
+        标志c.break是否被触发
 
 
 所有的包装器都可以层迭，例如：
