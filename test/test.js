@@ -34,42 +34,43 @@ describe('continue.js', function () {
       setTimeout(c, 10);
     }).stdend(done);
   });
-  it('safe', function() {
+  it('safe', function(done) {
     C('safe').then(function(c, locals) {
-      assert(locals.adv.safe);
+      assert(c.opts.safe);
       throw 'test';
-    }).fail(function(err, c) {
-      assert.equal(err, 'test');
+    }).fail(function(c) {
+      console.log(c.lastErr);
+      assert.equal(c.lastErr, 'test');
       throw 'test2';
-    }).fail(function(err, c) {
-      assert.equal(err, 'test2');
+    }).fail(function(c) {
+      assert.equal(c.lastErr, 'test2');
       c();
-    }).stdend();
+    }).stdend(done);
   });
   it('unsafe', function() {
     assert.throws(function () {
       C().then(function(c) {
         assert.not(locals.adv.safe);
         throw 'test';
-      }).stdend();
+      }).end();
     });
   });
   it('unsafe 2', function() {
     assert.throws(function () {
       C().then(function(c) {
         c.reject();
-      }).fail(function(err, c) {
+      }).fail(function(c) {
         throw 'test';
-      }).stdend();
+      }).end();
     });
   });
   it('unsafe 3', function() {
     assert.throws(function () {
       C().then(function(c) {
         c();
-      }).always(function(err, c, locals) {
+      }).always(function(c) {
         throw 'test';
-      }).stdend();
+      }).end();
     });
   });
   it('.then(c, locals, x, y)', function() {
@@ -78,45 +79,66 @@ describe('continue.js', function () {
     }).then(function(c, locals, x, y) {
       assert.equal(x, 123);
       assert.equal(y, 'hello');
-      assert.equal(locals.err, null);
-      assert.equal(locals.args[0], 123);
-      assert.equal(locals.args[1], 'hello');
-    }).stdend();
+      assert.equal(c.lastErr, null);
+      assert.equal(c.args[0], 123);
+      assert.equal(c.args[1], 'hello');
+    }).end();
   });
-  it('.fail(err, c, locals)', function() {
+  it('.fail(c, locals, x, y)', function() {
+    C().then(function(c) {
+      c.reject(123, 'hello');
+    }).fail(function(c, locals, x, y) {
+      assert.equal(x, 123);
+      assert.equal(y, 'hello');
+      assert.equal(c.lastErr, 123);
+      assert.equal(c.args[0], 123);
+      assert.equal(c.args[1], 'hello');
+    }).end();
+  });
+  it('.always(c, locals, x, y)', function() {
+    C().then(function(c) {
+      c(123, 'hello');
+    }).always(function(c, locals, x, y) {
+      assert.equal(x, 123);
+      assert.equal(y, 'hello');
+      assert.equal(c.lastErr, null);
+      assert.equal(c.args[0], 123);
+      assert.equal(c.args[1], 'hello');
+    }).end();
+  });
+  it('.fail(c, locals)', function() {
     C().then(function(c) {
       c.reject('test err');
-    }).fail(function(err, c, locals) {
-      assert.equal(err, 'test err');
-      assert.equal(locals.err, null);
-      assert.equal(locals.args[0], 'test err');
-      assert.equal(locals.args[1], undefined);
-    }).stdend();
+    }).fail(function(c, locals) {
+      assert.equal(c.err, null);
+      assert.equal(c.lastErr, 'test err');
+      assert.equal(c.args[0], 'test err');
+      assert.equal(c.args[1], undefined);
+    }).end();
   });
   it('.always', function() {
     var times = 0;
     C().then(function(c) {
       c.accept();
-    }).always(function(err, c, locals) {
-      assert.equal(err, null);
+    }).always(function(c, locals) {
+      assert.equal(c.lastErr, null);
       ++times;
       c.reject();
-    }).always(function(err, c, locals) {
-      assert.notEqual(err, null);
+    }).always(function(c, locals) {
+      assert.notEqual(c.lastErr, null);
       ++times;
       c();
     }).then(function(c, locals) {
       assert.equal(times, 2);
       c();
-    }).stdend();
+    }).end();
   });
   it('.last', function() {
     var x = 0;
     C().then(function(c) {
       c.accept();
-    }).last(function(err, locals) {
-      assert.equal(err, null);
-      assert.equal(locals.err, null);
+    }).last(function(c, locals) {
+      assert.equal(c.lastErr, null);
       x = 1;
     });
     assert.equal(x, 1);
@@ -125,9 +147,8 @@ describe('continue.js', function () {
     var x = 0;
     C().then(function(c) {
       c.reject();
-    }).last(function(err, locals) {
-      assert.notEqual(err, null);
-      assert.notEqual(locals.err, null);
+    }).last(function(c, locals) {
+      assert.notEqual(c.lastErr, null);
       x = 1;
     });
     assert.equal(x, 1);
@@ -161,10 +182,24 @@ describe('continue.js', function () {
       assert.equal(b, 'y.z');
     });
   });
+  it('.end assign $err', function() {
+    C().then(function(c, locals) {
+      c.reject('test err');
+    }).end(true, '$lastErr', function(err) {
+      assert.equal(err, 'test err');
+    });
+  });
+  it('.stdend do not allow missing callback', function() {
+    assert.throws(function () {
+      C().then(function(c) {
+        c.reject();
+      }).stdend();
+    });
+  });
   it('.stdend should not throw', function() {
     C().then(function(c) {
       c.reject();
-    }).stdend();
+    }).stdend(function(){});
   });
   it('.stdend assign', function() {
     C().then(function(c, locals) {
@@ -198,57 +233,65 @@ describe('continue.js', function () {
   it('c(...)', function() {
     C().then(function(c, locals) {
       c(123);
-    }).always(function(err, c, locals) {
-      assert.equal(err, null);
-      assert.equal(locals.args[0], 123);
-      locals.err = 'test error';
+    }).always(function(c, locals) {
+      assert.equal(c.lastErr, null);
+      assert.equal(c.args[0], 123);
+      c.err = 'test error';
       c(234);
-    }).always(function(err, c, locals) {
-      assert.equal(err, 'test error');
-      assert.equal(locals.args[0], 234);
-      assert.equal(locals.err, null);
-    }).stdend();
+    }).always(function(c, locals) {
+      assert.equal(c.lastErr, 'test error');
+      assert.equal(c.args[0], 234);
+      assert.equal(c.err, null);
+    }).end();
   });
   it('c.accept', function() {
     C().then(function(c, locals) {
       locals.err = 'test';
       c.accept(123);
-    }).always(function(err, c, locals) {
-      assert.equal(err, null);
-      assert.equal(locals.args[0], 123);
+    }).always(function(c, locals) {
+      assert.equal(c.lastErr, null);
+      assert.equal(c.args[0], 123);
       c();
-    }).stdend();
+    }).end();
   });
   it('c.reject', function() {
     C().then(function(c, locals) {
       c.reject('test');
-    }).always(function(err, c, locals) {
-      assert.equal(err, 'test');
-      assert.equal(locals.args[0], 'test');
+    }).always(function(c, locals) {
+      assert.equal(c.lastErr, 'test');
+      assert.equal(c.args[0], 'test');
       c.reject();
-    }).always(function(err, c, locals) {
-      assert.notEqual(err, 'test');
+    }).always(function(c, locals) {
+      assert.notEqual(c.lastErr, 'test');
       c();
-    }).stdend();
+    }).end();
   });
   it('c.break', function() {
     C().then(function(c, locals) {
       c.break('ohhhh');
-    }).always(function(err, c, locals) {
+    }).always(function(c, locals) {
       throw 'not over here';
-    }).last(function(err, locals) {
-      assert.equal(err, null);
-      assert.equal(locals.args[0], 'ohhhh');
-      assert(locals.adv.breaked);
+    }).last(function(c, locals) {
+      assert.equal(c.lastErr, null);
+      assert.equal(c.args[0], 'ohhhh');
+      assert(c.breaked);
     });
   });
   it('c.assign', function(done) {
     C().then(function(c, locals) {
       mock_callback(1, 'aa', c.assign('x', 'y.z'));
-    }).always(function(err, c, locals) {
-      assert.equal(err, null);
+    }).always(function(c, locals) {
+      assert.equal(c.lastErr, null);
       assert.equal(locals.x, 1);
       assert.equal(locals.y.z, 'aa');
+      c();
+    }).stdend(done);
+  });
+  it('c.assign $err', function(done) {
+    C().then(function(c, locals) {
+      mock_callback('test err', c.assign('$err'));
+    }).always(function(c, locals) {
+      assert.equal(c.lastErr, 'test err');
       c();
     }).stdend(done);
   });
@@ -256,7 +299,7 @@ describe('continue.js', function () {
     C().then(function(c, locals) {
       mock_callback(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 
             c.assign('a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10', 'a11', 'a12', 'a13'));
-    }).always(function(err, c, locals) {
+    }).always(function(c, locals) {
       assert.equal(locals.a13, 13);
       c();
     }).stdend(done);
@@ -264,27 +307,12 @@ describe('continue.js', function () {
   it('c.assign simulate length', function() {
     C().then(function(c, locals) {
       var args = [];
-      var args2 = [];
       for (var i = 0; i < 30; ++i) {
         assert.equal(c.assign.apply(this, args).length, i);
-        assert.equal(c.assign2.apply(this, args2).length, i);
         args.push('a' + i);
-        args2.push('a' + i);
-        args2.push('b' + i);
       }
       c();
-    }).stdend();
-  });
-  it('c.assign2', function(done) {
-    var x = {};
-    C().then(function(c, locals) {
-      mock_callback(1, 'aa', c.assign2(locals, 'x', x, 'y.z'));
-    }).always(function(err, c, locals) {
-      assert.equal(err, null);
-      assert.equal(locals.x, 1);
-      assert.equal(x.y.z, 'aa');
-      c();
-    }).stdend(done);
+    }).end();
   });
   it('c.locals', function(done) {
     C().then(function(c, locals) {
@@ -295,8 +323,8 @@ describe('continue.js', function () {
   it('c.reject.assign', function(done) {
     C().then(function(c, locals) {
       c.reject.assign('err2')('test error');
-    }).always(function(err, c, locals) {
-      assert.equal(err, 'test error');
+    }).always(function(c, locals) {
+      assert.equal(c.lastErr, 'test error');
       assert.equal(locals.err2, 'test error');
       c();
     }).stdend(done);
@@ -306,15 +334,15 @@ describe('continue.js', function () {
       mock_promise(true, 123).then(c.accept, c.reject);
     }).then(function(c, locals, value) {
       assert.equal(value, 123);
-      assert.equal(locals.args[0], 123);
+      assert.equal(c.args[0], 123);
       mock_promise(false, 234).then(c.accept, c.reject);
-    }).fail(function(err, c, locals) {
-      assert.equal(err, 234);
-      assert.equal(locals.args[0], 234);
+    }).fail(function(c, locals) {
+      assert.equal(c.lastErr, 234);
+      assert.equal(c.args[0], 234);
       mock_promise(true, 333).then(c.accept, c.reject);
-    }).always(function(err, c, locals) {
-      assert.equal(err, null);
-      assert.equal(locals.args[0], 333);
+    }).always(function(c, locals) {
+      assert.equal(c.lastErr, null);
+      assert.equal(c.args[0], 333);
       mock_promise(true).then(c.accept, c.reject);
     }).stdend(done);
   });
@@ -323,7 +351,7 @@ describe('continue.js', function () {
       C().then(function(c) {
         c();
         c();
-      }).stdend();
+      }).std();
     });
   });
 });
