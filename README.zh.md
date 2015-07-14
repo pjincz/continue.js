@@ -15,9 +15,8 @@ Road Map 1.0.1 => 1.0.2
 ✓ 移除node上的状态变量，使得node成为无状态上下文
 ✓ 移除assign2
 ✓ 添加for支持(并发、序列)
-✗ 添加并发节点支持
-✗ 添加回0.x中的直接使用C.then的功能
-✗ 设计assign自动生成的中间变量，以适应各种场合需求
+✓ 添加并发节点支持
+✓ 设计assign自动生成的中间变量，以适应各种场合需求
 ✓ c.err不再判定null，而是判定是否成立，如果成立则认为流程进入异常。也就是说undefined, false不会再使得流程进入异常
 
 设计目标
@@ -264,37 +263,37 @@ API
 
 ### Node
 
-* Node.then(callback) -> Node
+* Node#then(callback) -> Node
 
         增加一个正常逻辑块
         callback: function(c, locals)
         callback: function(c, locals, args...)
 
-* Node.then(callback, callback...) -> Node
+* Node#then(callback, callback...) -> Node
 
         并行运行callbacks...
         注意：在并行运行时，传递给c()的参数，将不会被下一个块的c.args捕捉。
               在并行运行中的任意一个任务失败，会导致整个块失败。
               目前仅.then支持并发，.fail和.always不支持。
 
-* Node.fail(callback) -> Node
+* Node#fail(callback) -> Node
 
         增加一个异常逻辑块
         callback: function(c, locals)
         callback: function(c, locals, args...)
 
-* Node.always(callback) -> Node
+* Node#always(callback) -> Node
 
         增加一个通用逻辑块，无论当前是否异常，都会被执行，可用于资源回收，但是要注意c.break会跳过always！
         callback: function(c, locals)
         callback: function(c, locals, args...)
 
-* Node.last(callback) -> null
+* Node#last(callback) -> null
 
         结束块，大部分时候用不到，用于在结束的时候做一些结束逻辑，或者拼接一些特殊的回调
         callback: function(c, locals)
 
-* Node.end([silent Boolean], [assign\_list...], [callback]) -> null
+* Node#end([silent Boolean], [assign\_list...], [callback]) -> null
 
         通用结束回调拼接器
         silent: [optional, Boolean, default = false] 可选参数，必须为Boolean, 
@@ -335,21 +334,21 @@ API
         另外可以通过这个特性获取数组中的变量，主要是为了获取args[0]等，例如
         .end('$args.0', '$args.1', callback);
 
-* Node.stdend([assign\_list], [callback]) -> null
+* Node#stdend([assign\_list], [callback]) -> null
 
         标准结束回调拼接器，用于适配标准回调函数
-        等价于Node.end(true, 'err', [assign_list], [callback]);
+        等价于Node#end(true, 'err', [assign_list], [callback]);
 
-* Node.toPromise(var) -> Promise.<locals[var] | c.lastErr>
+* Node#toPromise(var) -> Promise.<locals[var] | c.lastErr>
 
         Promise结束拼接器，并返回一个Promise
         var同样支持深层次获取
         如果var不指定，默认获取c.args[0]
 
-* Node.for([limit], Array, callback) -> Node
-* Node.for([limit], Object, callback) -> Node
-* Node.for([limit], iterator, args...) -> Node
-* Node.for([limit], String, args...) -> Node
+* Node#for([limit], Array, callback) -> Node
+* Node#for([limit], Object, callback) -> Node
+* Node#for([limit], iterator, args...) -> Node
+* Node#for([limit], String, args...) -> Node
 
         循环执行给定的块，直到完成for中指定的所有任务，或者c.break()，或者某个任务返回错误
         limit: 并发数量，如果不指定默认为 1
@@ -410,14 +409,15 @@ API
           c(1, 2, 3);
         assign可以进行深层次的赋值，例如 c.assign('mail.text', 'xxx.0')('aaa', 'bbb') 等价于：
           if (locals.mail === undefined) {
-            locals.mail = {};
+            locals.mail = Hash();
           }
           if (locals.xxx === undefined) {
-            locals.xxx = {};
+            locals.xxx = Hash();
           }
           locals.mail.text = 'aaa';
           locals.xxx[0] = 'bbb';
           c('aaa', 'bbb');
+        当assign是，如果途径的变量不存在，则自动会构造一个Hash的实例，Hash包含一些特殊的函数便于使用和收集数据
         当assign的名字以$打头时，assign将会操作c，例如 c.assign('$err')('test err') 等价于：
           c.err = 'test err';
           c('test err');
@@ -459,6 +459,18 @@ API
       c.breaked = true;
       c.err = 'test';
       c('test');
+
+### Hash
+
+当c.assign在进行操作时，如果遇到不存在在路径上的变量，continue.js会自动建立Hash的实例，例如：
+
+    c.assign('user.name')('tony');
+
+这个时候，locals.user如果不存在，将会自动创建一个Hash的实例。
+
+* Hash#toArray -> Array
+
+        将Hash中数字下标的元素抽取出来，并创建一个数组。
 
 FAQ
 ---
