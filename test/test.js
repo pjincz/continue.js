@@ -411,4 +411,36 @@ describe('continue.js', function () {
       throw 'not over here';
     }).stdend(done);
   });
+  it('.then parallel', function(done) {
+    var times = 0;
+    C().then(function(c, locals) {
+      ++times;
+      setTimeout(c, 1000);
+    }, function(c, locals) {
+      ++times;
+      setTimeout(c, 1000);
+    }, function(c, locals) {
+      ++times;
+      setTimeout(c, 1000);
+    }).then(function(c, locals) {
+      assert.equal(times, 3);
+      c();
+    }).stdend(done);
+  });
+  it('.then parallel break', function(done) {
+    var times = 0;
+    C().then(function(c, locals) {
+      setTimeout(function() {
+        ++times;
+        c.break();
+      }, 500);
+    }, function(c, locals) {
+      setTimeout(function() {
+        ++times;
+        c();
+      }, 1000);
+    }).then(function(c, locals) {
+      throw 'will not over here'
+    }).stdend(done);
+  });
 });

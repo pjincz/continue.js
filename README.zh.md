@@ -270,6 +270,13 @@ API
         callback: function(c, locals)
         callback: function(c, locals, args...)
 
+* Node.then(callback, callback...) -> Node
+
+        并行运行callbacks...
+        注意：在并行运行时，传递给c()的参数，将不会被下一个块的c.args捕捉。
+              在并行运行中的任意一个任务失败，会导致整个块失败。
+              目前仅.then支持并发，.fail和.always不支持。
+
 * Node.fail(callback) -> Node
 
         增加一个异常逻辑块
