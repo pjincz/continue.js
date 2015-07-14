@@ -110,7 +110,7 @@ Road Map 1.0.1 => 1.0.2
 * c(...): 进入下一块，传递给c的变量将自动赋值给到下一个块的 `c.args`
 * c.accept(...): 类似 `c(...)` ，但是c.accept会主动清空异常状态
 * c.reject(...): 使流程进入错误状态，传递给 `c.reject` 的第一个参数将被赋值给 `c.err`
-* c.break(...): 终止 `continue.js` 的流程，并直接跳转到结束块
+* c.break(...): 如果在循环中，则终止循环，否则的话终止整个调用链。终止后，在下一个节点中c.breaked = true
 
 控制器辅助函数：
 * c.assign('a', 'b', 'c'...): 返回一个包装函数，这个函数将 `args...` 依次赋值给 `locals.a`,  `locals.b`,  `locals.c`...
@@ -290,7 +290,8 @@ API
 * Node.end([silent Boolean], [assign\_list...], [callback]) -> null
 
         通用结束回调拼接器
-        silent: [optional, Boolean, default = false] 可选参数，必须为Boolean, 表示当链异常结束时是否沉默（不抛出异常）。默认为抛出异常。
+        silent: [optional, Boolean, default = false] 可选参数，必须为Boolean, 
+                表示当链异常结束时是否沉默（不抛出异常）。默认为抛出异常。
         assign_list: [optional, String] 将locals.var_name作为参数传递给callback，可以有多个。
         callback: [optional, Function] 当链结束时，会调用这个回调函数。
     
@@ -338,6 +339,29 @@ API
         var同样支持深层次获取
         如果var不指定，默认获取c.args[0]
 
+* Node.for([limit], Array, callback) -> Node
+* Node.for([limit], Object, callback) -> Node
+* Node.for([limit], iterator, args...) -> Node
+* Node.for([limit], String, args...) -> Node
+
+        循环执行给定的块，直到完成for中指定的所有任务，或者c.break()，或者某个任务返回错误
+        limit: 并发数量，如果不指定默认为 1
+        Array: 遍历数组，并调用回调，此时回调函数签名为：
+            callback: function(idx, value, c, locals)
+        Object: 遍历对象，并调用回调，此时回调函数的前面为：
+            callback: function(key, value, c, locals)
+        iterator: 迭代器函数，`continue.js` 每次调用iterator(args)获得一个新的任务
+            如果iterator(args)返回函数，则.for会执行函数。
+            如果iterator(args)返回空，则表示所有任务迭代完成。
+            iterator(args)返回的函数签名必须是：
+                callback: function(c, locals)
+        String: 先通过c.get()获取对应变量后，在根据变量类型判断执行上面3种情况中的一种
+
+        在.for中可以通过c.break()终止.for。这时可以在下一个块中通过c.breaked判断for是否是被break终止的。
+        当.for中任意一个任务异常结束时，.for不会继续后续任务。这时可以在下一块中通过c.lastErr判断
+
+        注意：当.for在并行运行时发生错误或break时，.for节点不会立即结束，而是等待目前已经运行的任务都结束后才会进入下一个块。
+
 ### c
 
 * c(...) -> null
@@ -365,14 +389,7 @@ API
 * c.break -> break\_wrap<c>
 * c.break(...) -> null
 
-        等价于
-          // do not do as this!!!
-          while(c.next.next) {
-            c.next = c.next.next;
-          }
-          c.breaked = true;
-          c(...);
-        终止`continue.js`链，并直接跳转到结束节点。
+        如果在.for节点中，则终止.for的执行，否则终止整个链的执行并跳转到结束块。
         c.break不会设置异常状态，如果需要设置异常并跳转到结束节点，可以主动设置local.err
         或者和assign, reject连用
 
