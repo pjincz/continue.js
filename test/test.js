@@ -16,6 +16,14 @@ var mock_callback = function() {
   }, 1);
 };
 
+var mock_callback_1000 = function() {
+  var callback = arguments[arguments.length - 1];
+  var args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
+  setTimeout(function() {
+    callback.apply(this, args);
+  }, 1000);
+};
+
 var mock_promise = function(s, val) {
   return new Promise(function(fullfil, reject) {
     setTimeout(function() {
@@ -39,7 +47,6 @@ describe('continue.js', function () {
       assert(c.opts.safe);
       throw 'test';
     }).fail(function(c) {
-      console.log(c.lastErr);
       assert.equal(c.lastErr, 'test');
       throw 'test2';
     }).fail(function(c) {
@@ -353,5 +360,55 @@ describe('continue.js', function () {
         c();
       }).std();
     });
+  });
+  it('.for array', function() {
+    var x = '';
+    C().for(['a', 'b', 'c'], function(i, v, c, locals) {
+      x += v;
+    }).then(function(c, locals) {
+      assert(x, 'abc');
+    }).end();
+  });
+  it('.for object', function() {
+    var ks = '';
+    var vs = '';
+    C().then(function(c, locals) {
+      locals.x = {a: 1, b: 2, c: 3};
+    }).for('x', function(k, v, c, locals) {
+      ks += k;
+      vs += v;
+    }).then(function(c, locals) {
+      assert(ks, 'abc');
+      assert(vs, '123');
+    }).end();
+  });
+  it('.for break', function() {
+    C().for(['a', 'b', 'c'], function(i, v, c, locals) {
+      locals.times = locals.times ? locals.times + 1 : 1;
+      c.break();
+    }).always(function(c, locals) {
+      assert.equal(c.lastErr, null);
+      assert.equal(locals.times, 1);
+      assert.equal(c.breaked, true);
+      locals.xxx = 1;
+    }).last(function(c, locals) {
+      assert.equal(c.breaked, false);
+      assert.equal(locals.xxx, 1);
+    });
+  });
+  it('.for parallel', function(done) {
+    // if parallel succeed, this case will case 1000 ms
+    // else it will be timeout
+    C().for(10, ['a', 'b', 'c', 'd', 'e'], function(i, v, c, locals) {
+      mock_callback_1000(v, c.assign('x.' + i));
+    }).then(function(c, locals) {
+      assert.equal(locals.x.toArray().join(''), 'abcde');
+      c();
+    }).stdend(done);
+  });
+  it('.for empty', function(done) {
+    C().for([], function(i, v, c, locals) {
+      throw 'not over here';
+    }).stdend(done);
   });
 });
