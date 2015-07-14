@@ -14,11 +14,11 @@ Road Map 1.0.1 => 1.0.2
 ✓ .fail .always也可以通过额外参数获取args
 ✓ 移除node上的状态变量，使得node成为无状态上下文
 ✓ 移除assign2
-✗ 修改c.break含义，或移除现有c.break的含义
 ✓ 添加for支持(并发、序列)
 ✗ 添加并发节点支持
 ✗ 添加回0.x中的直接使用C.then的功能
 ✗ 设计assign自动生成的中间变量，以适应各种场合需求
+✓ c.err不再判定null，而是判定是否成立，如果成立则认为流程进入异常。也就是说undefined, false不会再使得流程进入异常
 
 设计目标
 --------
@@ -32,7 +32,7 @@ Road Map 1.0.1 => 1.0.2
 ----
 
     C().then(function(c, locals) {
-      models.user.find(userid, c.assign('err', 'record'));
+      models.user.find(userid, c.assign('$err', 'record'));
     }).then(function(c, locals) {
       locals.record.money += 20;
       locals.record.save(c.assign('$err'));
@@ -104,7 +104,7 @@ Road Map 1.0.1 => 1.0.2
 * c.lastErr: 上个块结束时的错误
 * c.args: 在上个块中c被调用的所有参数，注意，在上一个块中c不一定是被直接调用的，c.reject，c.accept，c.break
   或者他们的组合，c.args都可以正常工作
-* c.err: 当前块错误信息，初始为null，当块结束时，如果这个变量不为空，则流程进入异常流
+* c.err: 当前块错误信息，初始为null，当块结束时，如果这个变量是一个true值的变量（例如非空字符串，数组，对象等），则流程进入异常流
 
 控制器流程控制函数：
 * c(...): 进入下一块，传递给c的变量将自动赋值给到下一个块的 `c.args`
@@ -212,19 +212,19 @@ Road Map 1.0.1 => 1.0.2
     // work with simple callback
     function myFunc(done) {
       C().then(function(c, locals) {
-        fs.readFile('xxx.html', c.assign('err', 'htmlCont'));
+        fs.readFile('xxx.html', c.assign('$err', 'htmlCont'));
       }).then(function(c, locals) {
-        fs.readFile('xxx.tet', c.assign('err', 'txtCont'));
+        fs.readFile('xxx.tet', c.assign('$err', 'txtCont'));
       }).end('fileCont', 'txtCont', done);  
-      // same as: done(locals.fileCont, locals.txtCont);  end will throw err, if c.lastErr is not null!
+      // same as: done(locals.fileCont, locals.txtCont);  end will throw err, if c.lastErr!
     }
 
     // work with simple callback and ignore error. (BAD WAY!!!)
     function myFunc(done) {
       C().then(function(c, locals) {
-        fs.readFile('xxx.html', c.assign('err', 'htmlCont'));
+        fs.readFile('xxx.html', c.assign('$err', 'htmlCont'));
       }).then(function(c, locals) {
-        fs.readFile('xxx.tet', c.assign('err', 'txtCont'));
+        fs.readFile('xxx.tet', c.assign('$err', 'txtCont'));
       }).end(false, 'fileCont', 'txtCont', done);  
       // same as: done(locals.fileCont, locals.txtCont);  end do not throw anything.
     }
@@ -232,9 +232,9 @@ Road Map 1.0.1 => 1.0.2
     // work with promise
     function myFunc() {
       return C().then(function() {
-        fs.readFile('xxx.csv', c.assign('err', 'fileCont'));
+        fs.readFile('xxx.csv', c.assign('$err', 'fileCont'));
       }).toPromise('fileCont');  
-      // return a promise, if c.lastErr is null, locals.fileCont will set as promise value, otherwise promise will turn to rejected.
+      // return a promise, if c.lastErr, locals.fileCont will set as promise value, otherwise promise will turn to rejected.
     }
 
 ### 和Promise合作
@@ -399,8 +399,8 @@ API
           c('test err');
         另外可以通过c.assign()模拟函数参数个数，例如：
           c.length  ---> 0
-          c.assign('err')  ---> 1
-          c.assign('err', 'books')  ---> 2
+          c.assign('$err')  ---> 1
+          c.assign('$err', 'books')  ---> 2
           c.assign(null, null)  ---> 2     // null will skip assign
 
 * c.locals -> locals
