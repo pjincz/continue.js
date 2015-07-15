@@ -16,12 +16,12 @@ var mock_callback = function() {
   }, 1);
 };
 
-var mock_callback_1000 = function() {
+var mock_callback_100 = function() {
   var callback = arguments[arguments.length - 1];
   var args = Array.prototype.slice.call(arguments, 0, arguments.length - 1);
   setTimeout(function() {
     callback.apply(this, args);
-  }, 1000);
+  }, 100);
 };
 
 var mock_promise = function(s, val) {
@@ -37,6 +37,7 @@ var mock_promise = function(s, val) {
 };
 
 describe('continue.js', function () {
+  this.timeout(200);
   it('basic chain', function(done) {
     C().then(function(c) {
       setTimeout(c, 10);
@@ -370,6 +371,18 @@ describe('continue.js', function () {
       assert(x, 'abc');
     }).end();
   });
+  it('.for string', function() {
+    var x = '';
+    C().then(function(c) {
+      this.xxx = ['a', 'b', 'c'];
+      c();
+    }).for(10, 'xxx', function(c, i, v) {
+      assert.equal(typeof i, 'number');
+      x += v;
+    }).then(function(c) {
+      assert(x, 'abc');
+    }).end();
+  });
   it('.for object', function() {
     var ks = '';
     var vs = '';
@@ -402,7 +415,7 @@ describe('continue.js', function () {
     // if parallel succeed, this case will case 1000 ms
     // else it will be timeout
     C().for(10, ['a', 'b', 'c', 'd', 'e'], function(c, i, v) {
-      mock_callback_1000(v, c.assign('x.' + i));
+      mock_callback_100(v, c.assign('x.' + i));
     }).then(function(c) {
       assert.equal(this.x.toArray().join(''), 'abcde');
       c();
@@ -420,15 +433,15 @@ describe('continue.js', function () {
     }).then(function(c, x) {
       assert.equal(x, 123);
       ++times;
-      setTimeout(c, 1000);
+      setTimeout(c, 100);
     }, function(c, x) {
       assert.equal(x, 123);
       ++times;
-      setTimeout(c, 1000);
+      setTimeout(c, 100);
     }, function(c, x) {
       assert.equal(x, 123);
       ++times;
-      setTimeout(c, 1000);
+      setTimeout(c, 100);
     }).then(function(c) {
       assert.equal(times, 3);
       c();
@@ -440,12 +453,12 @@ describe('continue.js', function () {
       setTimeout(function() {
         ++times;
         c.break();
-      }, 500);
+      }, 50);
     }, function(c) {
       setTimeout(function() {
         ++times;
         c();
-      }, 1000);
+      }, 100);
     }).then(function(c) {
       throw 'will not over here'
     }).stdend(done);
