@@ -24,6 +24,7 @@ Changes 1.0.2 => 1.0.3
 ✓ 移除locals，用this代替，使得回调函数更加简洁
 ✓ 调整.for回调函数参数格式
 ✓ c.get, c.set成为公开api
+✓ loopKey功能，详见c.get, c.set
 
 设计目标
 --------
@@ -430,6 +431,10 @@ API
 
         标志c.break是否被触发
 
+* c.loopKey
+        
+        参见：c.get, c.set
+
 * c.get(String) -> var
 
         获取this或c上的变量，当String以$开始时，操作c，否则操作this
@@ -439,6 +444,9 @@ API
         c.get(null) // null
         单独使用无特殊价值，被Node#end, Node#stdend使用
         另外，可以通过c.get('$args.0')访问c.args[0]，这个在.end, .stdend中有特殊价值
+        
+        当在循环中时，如果循环存在loopKey（例如遍历Array，loopKey为下标，遍历Object，loopKey为name）
+        可以使用@代替loopKey，例如c.get('fis.@.name')，则获取this.fis[i].name
 
 * c.set(String, val) -> null
 
@@ -448,6 +456,9 @@ API
         c.set(null, 123)  // do nothing
         单独使用无特殊价值，被c.assign使用
         另外，可以通过c.set('x.0', 123)设置this.x[0] = 123，这个在.for节点中有特殊价值，例如c.assign('files[' + i +'].name');
+
+        当在循环中时，如果循环存在loopKey（例如遍历Array，loopKey为下标，遍历Object，loopKey为name）
+        可以使用@代替loopKey，例如c.set('fis.@.name', fname)，则this.fis[i].name = fname
 
 所有的包装器都可以层迭，例如：
 

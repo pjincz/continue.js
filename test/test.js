@@ -56,32 +56,38 @@ describe('continue.js', function () {
     }).stdend(done);
   });
   it('unsafe', function() {
-    assert.throws(function () {
+    try {
       C().then(function(c) {
-        assert.not(c.opts.safe);
+        assert(!c.opts.safe);
         throw 'test';
       }).end();
-    });
+    } catch (err) {
+      assert.equal(err, 'test');
+    }
   });
   it('unsafe 2', function() {
-    assert.throws(function () {
+    try {
       C().then(function(c) {
         c.reject();
       }).fail(function(c) {
         throw 'test';
       }).end();
-    });
+    } catch (err) {
+      assert.equal(err, 'test');
+    }
   });
   it('unsafe 3', function() {
-    assert.throws(function () {
+    try {
       C().then(function(c) {
         c();
       }).always(function(c) {
         throw 'test';
       }).end();
-    });
+    } catch (err) {
+      assert.equal(err, 'test');
+    }
   });
-  it('.then(c, x, y)', function() {
+  it('.then(c, x, y)', function(done) {
     C().then(function(c) {
       c(123, 'hello');
     }).then(function(c, x, y) {
@@ -90,9 +96,10 @@ describe('continue.js', function () {
       assert.equal(c.lastErr, null);
       assert.equal(c.args[0], 123);
       assert.equal(c.args[1], 'hello');
-    }).end();
+      c();
+    }).stdend(done);
   });
-  it('.fail(c, x, y)', function() {
+  it('.fail(c, x, y)', function(done) {
     C().then(function(c) {
       c.reject(123, 'hello');
     }).fail(function(c, x, y) {
@@ -101,9 +108,10 @@ describe('continue.js', function () {
       assert.equal(c.lastErr, 123);
       assert.equal(c.args[0], 123);
       assert.equal(c.args[1], 'hello');
-    }).end();
+      c();
+    }).stdend(done);
   });
-  it('.always(c, x, y)', function() {
+  it('.always(c, x, y)', function(done) {
     C().then(function(c) {
       c(123, 'hello');
     }).always(function(c, x, y) {
@@ -112,9 +120,10 @@ describe('continue.js', function () {
       assert.equal(c.lastErr, null);
       assert.equal(c.args[0], 123);
       assert.equal(c.args[1], 'hello');
-    }).end();
+      c();
+    }).stdend(done);
   });
-  it('.fail(c)', function() {
+  it('.fail(c)', function(done) {
     C().then(function(c) {
       c.reject('test err');
     }).fail(function(c) {
@@ -122,9 +131,10 @@ describe('continue.js', function () {
       assert.equal(c.lastErr, 'test err');
       assert.equal(c.args[0], 'test err');
       assert.equal(c.args[1], undefined);
-    }).end();
+      c();
+    }).stdend(done);
   });
-  it('.always', function() {
+  it('.always', function(done) {
     var times = 0;
     C().then(function(c) {
       c.accept();
@@ -139,9 +149,9 @@ describe('continue.js', function () {
     }).then(function(c) {
       assert.equal(times, 2);
       c();
-    }).end();
+    }).stdend(done);
   });
-  it('.last', function() {
+  it('.last', function(done) {
     var x = 0;
     C().then(function(c) {
       c.accept();
@@ -150,8 +160,9 @@ describe('continue.js', function () {
       x = 1;
     });
     assert.equal(x, 1);
+    done();
   });
-  it('.last 2', function() {
+  it('.last 2', function(done) {
     var x = 0;
     C().then(function(c) {
       c.reject();
@@ -160,27 +171,32 @@ describe('continue.js', function () {
       x = 1;
     });
     assert.equal(x, 1);
+    done();
   });
   it('.end should throw', function() {
-    assert.throws(function () {
+    try {
       C().then(function(c) {
         c.reject();
       }).end();
-    });
+    } catch (err) {
+      assert(err instanceof Error);
+    }
   });
   it('.end should throw 2', function() {
-    assert.throws(function () {
+    try {
       C().then(function(c) {
         c.reject();
       }).end(false);
-    });
+    } catch (err) {
+      assert(err instanceof Error);
+    }
   });
   it('.end should not throw', function() {
     C().then(function(c) {
       c.reject();
     }).end(true);
   });
-  it('.end assign', function() {
+  it('.end assign', function(done) {
     C().then(function(c) {
       this.x = 1;
       this.y = {z: 'y.z'};
@@ -188,28 +204,32 @@ describe('continue.js', function () {
     }).end('x', 'y.z', function(a, b) {
       assert.equal(a, 1);
       assert.equal(b, 'y.z');
+      done();
     });
   });
-  it('.end assign $err', function() {
+  it('.end assign $err', function(done) {
     C().then(function(c) {
       c.reject('test err');
     }).end(true, '$lastErr', function(err) {
       assert.equal(err, 'test err');
+      done();
     });
   });
   it('.stdend do not allow missing callback', function() {
-    assert.throws(function () {
+    try {
       C().then(function(c) {
         c.reject();
       }).stdend();
-    });
+    } catch (err) {
+      assert(err instanceof Error);
+    }
   });
   it('.stdend should not throw', function() {
     C().then(function(c) {
       c.reject();
     }).stdend(function(){});
   });
-  it('.stdend assign', function() {
+  it('.stdend assign', function(done) {
     C().then(function(c) {
       this.x = 1;
       this.y = {z: 'y.z'};
@@ -218,17 +238,19 @@ describe('continue.js', function () {
       assert.equal(err, 'test');
       assert.equal(a, 1);
       assert.equal(b, 'y.z');
+      done();
     });
   });
-  it('.toPromise fullfil', function() {
+  it('.toPromise fullfil', function(done) {
     var p = C().then(function(c) {
       c.accept(123);
     }).toPromise();
     p.then(function(v) {
       assert.equal(v, 123);
+      done();
     });
   });
-  it('.toPromise reject', function() {
+  it('.toPromise reject', function(done) {
     var p = C().then(function(c) {
       c.reject('test');
     }).toPromise();
@@ -236,9 +258,10 @@ describe('continue.js', function () {
       throw 'not over here';
     }, function(err) {
       assert.equal(err, 'test');
+      done();
     });
   });
-  it('c(...)', function() {
+  it('c(...)', function(done) {
     C().then(function(c) {
       c(123);
     }).always(function(c) {
@@ -250,9 +273,10 @@ describe('continue.js', function () {
       assert.equal(c.lastErr, 'test error');
       assert.equal(c.args[0], 234);
       assert.equal(c.err, null);
-    }).end();
+      c();
+    }).stdend(done);
   });
-  it('c.accept', function() {
+  it('c.accept', function(done) {
     C().then(function(c) {
       this.err = 'test';
       c.accept(123);
@@ -260,9 +284,9 @@ describe('continue.js', function () {
       assert.equal(c.lastErr, null);
       assert.equal(c.args[0], 123);
       c();
-    }).end();
+    }).stdend(done);
   });
-  it('c.reject', function() {
+  it('c.reject', function(done) {
     C().then(function(c) {
       c.reject('test');
     }).always(function(c) {
@@ -272,9 +296,9 @@ describe('continue.js', function () {
     }).always(function(c) {
       assert.notEqual(c.lastErr, 'test');
       c();
-    }).end();
+    }).stdend(done);
   });
-  it('c.break', function() {
+  it('c.break', function(done) {
     C().then(function(c) {
       c.break('ohhhh');
     }).always(function(c) {
@@ -283,6 +307,7 @@ describe('continue.js', function () {
       assert.equal(c.lastErr, null);
       assert.equal(c.args[0], 'ohhhh');
       assert(c.breaked);
+      done();
     });
   });
   it('c.assign', function(done) {
@@ -312,7 +337,7 @@ describe('continue.js', function () {
       c();
     }).stdend(done);
   });
-  it('c.assign simulate length', function() {
+  it('c.assign simulate length', function(done) {
     C().then(function(c) {
       var args = [];
       for (var i = 0; i < 30; ++i) {
@@ -320,7 +345,7 @@ describe('continue.js', function () {
         args.push('a' + i);
       }
       c();
-    }).end();
+    }).stdend(done);
   });
   it('c.locals', function(done) {
     C().then(function(c) {
@@ -355,49 +380,66 @@ describe('continue.js', function () {
     }).stdend(done);
   });
   it('do not call c() twice', function() {
-    assert.throws(function () {
+    try {
       C().then(function(c) {
         c();
         c();
-      }).std();
-    });
+      }).end();
+    } catch (err) {
+      assert(err instanceof Error);
+    }
   });
-  it('.for array', function() {
+  it('.for array', function(done) {
     var x = '';
+    var invoked = false;
     C().for(['a', 'b', 'c'], function(c, i, v) {
       assert.equal(typeof i, 'number');
+      assert.equal(c.loopKey, i);
       x += v;
+      c();
     }).then(function(c) {
       assert(x, 'abc');
-    }).end();
+      c();
+    }).stdend(function() {
+      if (invoked) throw new Error('aaa');
+      invoked = true;
+      done();
+    });
   });
-  it('.for string', function() {
+  it('.for string', function(done) {
     var x = '';
     C().then(function(c) {
       this.xxx = ['a', 'b', 'c'];
       c();
     }).for(10, 'xxx', function(c, i, v) {
       assert.equal(typeof i, 'number');
+      assert.equal(c.loopKey, i);
       x += v;
+      c();
     }).then(function(c) {
       assert(x, 'abc');
-    }).end();
+      c();
+    }).stdend(done);
   });
-  it('.for object', function() {
+  it('.for object', function(done) {
     var ks = '';
     var vs = '';
     C().then(function(c) {
       this.x = {a: 1, b: 2, c: 3};
+      c();
     }).for('x', function(c, k, v) {
-      assert.equal(typeof i, 'string');
+      assert.equal(typeof k, 'string');
+      assert.equal(c.loopKey, k);
       ks += k;
       vs += v;
+      c();
     }).then(function(c) {
       assert(ks, 'abc');
       assert(vs, '123');
-    }).end();
+      c();
+    }).stdend(done);
   });
-  it('.for break', function() {
+  it('.for break', function(done) {
     C().for(['a', 'b', 'c'], function(c, i, v) {
       this.times = this.times ? this.times + 1 : 1;
       c.break();
@@ -406,9 +448,11 @@ describe('continue.js', function () {
       assert.equal(this.times, 1);
       assert.equal(c.breaked, true);
       this.xxx = 1;
+      c();
     }).last(function(c) {
-      assert.equal(c.breaked, false);
+      assert(!c.breaked);
       assert.equal(this.xxx, 1);
+      done();
     });
   });
   it('.for parallel', function(done) {

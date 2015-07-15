@@ -1,11 +1,9 @@
-/* This example simulate implement a dirlist in express
- */
+// This example simulate implement an enhanced dirlist feature in express
+
 var C = require('../lib/continue.js');
 var fs = require('fs');
 var path = require('path');
 var execFile = require('child_process').execFile;
-
-var dir = path.join(process.argv[2] || __dirname);
 
 var sha1 = function(fpath, mtime, done) {
   // you can implement cache here...
@@ -14,16 +12,18 @@ var sha1 = function(fpath, mtime, done) {
   });
 };
 
+var dir = path.join(process.argv[2] || __dirname);
+
 C().then(function(c) {
   fs.readdir(dir, c.assign('$err', 'files')); // *1
 }).for(10, 'files', function(c, idx, fname) { // *2
-  c.set('fis.' + idx + '.name', fname); // *3
-  fs.stat(path.join(dir, fname), c.assign('$err', 'fis.' + idx + '.stats')); // *4
+  c.set('fis.@.name', fname); // *3
+  fs.stat(path.join(dir, fname), c.assign('$err', 'fis.@.stats')); // *4
 }).for(10, 'files', function(c, idx, fname) {
   if (this.fis[idx].stats.isFile()) {
-    sha1(path.join(dir, fname), c.assign('$err', 'fis.' + idx + '.sha1')); // *5
+    sha1(path.join(dir, fname), this.fis[idx].stats.mtime, c.assign('$err', 'fis.@.sha1')); // *5
   } else {
-    c.set('fis.' + idx + '.sha1', '-');
+    c.set('fis.@.sha1', '-');
     c(); // do not forget this...
   }
 }).then(function(c) { // *6
