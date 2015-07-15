@@ -4,8 +4,8 @@ continue.js 1.x
 注意: continue.js 1.0.x目前API设计尚未完成和冻结，请不要在生产项目中使用
 注意: continue.js 1.x 和 0.x 不兼容
 
-Road Map 1.0.1 => 1.0.2
-=======================
+Changes 1.0.1 => 1.0.2
+======================
 
 ✓ locals/c的职责进一步明确，locals中的所有特殊变量全部被移除。
 ✓ c中添加lastErr, args等参数用于替代locals原本的职责。
@@ -19,6 +19,12 @@ Road Map 1.0.1 => 1.0.2
 ✓ 设计assign自动生成的中间变量，以适应各种场合需求
 ✓ c.err不再判定null，而是判定是否成立，如果成立则认为流程进入异常。也就是说undefined, false不会再使得流程进入异常
 
+Changes 1.0.2 => 1.0.3
+======================
+✓ 移除locals，用this代替，使得回调函数更加简洁
+✓ 调整.for回调函数参数格式
+✓ c.get, c.set成为公开api
+
 设计目标
 --------
 
@@ -30,11 +36,11 @@ Road Map 1.0.1 => 1.0.2
 范例
 ----
 
-    C().then(function(c, locals) {
+    C().then(function(c) {
       models.user.find(userid, c.assign('$err', 'record'));
-    }).then(function(c, locals) {
-      locals.record.money += 20;
-      locals.record.save(c.assign('$err'));
+    }).then(function(c) {
+      this.record.money += 20;
+      this.record.save(c.assign('$err'));
     }).end();
 
 文档：
@@ -59,9 +65,9 @@ Road Map 1.0.1 => 1.0.2
 `safe` 原本为 `continue.js 0.x` 设计的默认选项。但是后来由于种种局限在`1.x`被设计为了备选项，推荐仅在 `domain` 无法使用，
 并且必须强异常保护的场合使用。注意， `safe` 仅能保护逻辑块，不能保护结束中的回调。范例：
 
-      C("safe").then(function(c, locals) {
+      C("safe").then(function(c) {
         throw 'test';
-      }).then(function(err, c, locals) {
+      }).then(function(err, c) {
         console.log(err);
       }).end();
 
@@ -89,7 +95,7 @@ Road Map 1.0.1 => 1.0.2
 * 链触发：当缺少终止块时，整个 `continue.js` 将不会运行。  
 
 终止函数：
-* `last(c, locals)`: 自定义终止函数，完成复杂的结束逻辑
+* `last(c)`: 自定义终止函数，完成复杂的结束逻辑
 * `end([Boolean slient], [String assign_list...], [callback])`: 通用终止函数
 * `stdend([String assign_list], callback)`: 标准终止函数，注意标准函数不允许省略callback
 * `toPromise()`: promise拼接终止函数
@@ -112,16 +118,16 @@ Road Map 1.0.1 => 1.0.2
 * c.break(...): 如果在循环中，则终止循环，否则的话终止整个调用链。终止后，在下一个节点中c.breaked = true
 
 控制器辅助函数：
-* c.assign('a', 'b', 'c'...): 返回一个包装函数，这个函数将 `args...` 依次赋值给 `locals.a`,  `locals.b`,  `locals.c`...
+* c.assign('a', 'b', 'c'...): 返回一个包装函数，这个函数将 `args...` 依次赋值给 `this.a`,  `this.b`,  `this.c`...
 同时完成原有功能。`c.accept`,  `c.reject`,  `c.break`同样可以使用 `assign`:  
 
     c.accept.assign(...)
 
-### 本地变量
+### this变量
 
-在回调函数中，存在着另一个特殊变量 `locals`。 `locals` 存放着所有的 `continue.js` 链上的变量。
-在 `continue.js` 的处理时，可以将各种本地变量存放在 `locals` 上。尤其是控制器上 `c.assign` 和 `locals` 密不可分。
-`locals`是`continue.js`工作的核心之一。善用`locals`可以让你的代码清晰简洁。
+在回调函数中，可以通过this存取上下文变量，便于在不同的块之间传递和共享变量。
+在链开始工作时，this被初始化为一个空的Object，可以在块中存取this变量。也可以通过控制器的c.get, c.set存取this变量。
+c.assign, Node#end等函数会间接的使用c.get/c.set访问和设置this上的变量。
 
 ### 错误处理
 
@@ -149,25 +155,25 @@ Road Map 1.0.1 => 1.0.2
 `continue.js`的控制器上有很多的函数，都是为了消除逻辑块中的回调而存在的。正确的使用控制块消除回调，才能发挥出`continue.js`的威力。
 
     // bad
-    C().then(function(c, locals) {
+    C().then(function(c) {
       fs.readFile('xxx.csv', function(err, data) {
         if (err) {
           c.reject(err);
         } else {
-          locals.fileCont = data;
+          this.fileCont = data;
           c.accept();
         }
       });
-    }).then(function(c, locals) {
-      console.log(locals.fileCont);
+    }).then(function(c) {
+      console.log(this.fileCont);
       c();
     }).end();
 
     // good
-    C().then(function(c, locals) {
+    C().then(function(c) {
       fs.readFile('xxx.csv', c.assign('$err', 'fileCont'));
-    }).then(function(c, locals) {
-      console.log(locals.fileCont);
+    }).then(function(c) {
+      console.log(this.fileCont);
       c();
     });
 
@@ -183,7 +189,7 @@ Road Map 1.0.1 => 1.0.2
     // standard callback (err as first argument)
     fs.readFile('xxx.csv', c.assign('$err'));
 
-    // capture arguments to `locals`
+    // capture arguments to this
     fs.readFile('xxx.csv', c.assign('$err', 'fileCont'));
 
     // callback need special arguments length
@@ -192,7 +198,7 @@ Road Map 1.0.1 => 1.0.2
     // use promise in block
     User.create({...}).then(c.accept, c.reject);
 
-在assign中，aaa表示设置locals.aaa，$err表示设置c.err，xxx.yyy表示设置locals.xxx.yyy
+在assign中，aaa表示设置this.aaa，$err表示设置c.err，xxx.yyy表示设置this.xxx.yyy，参加c.set()
 
 ### end拼接，消除回调
 
@@ -200,32 +206,32 @@ Road Map 1.0.1 => 1.0.2
 
     // work with standard callback
     function myFunc(done) {
-      C().then(function(c, locals) {
+      C().then(function(c) {
         fs.readFile('xxx.html', c.assign('$err', 'htmlCont'));
-      }).then(function(c, locals) {
+      }).then(function(c) {
         fs.readFile('xxx.tet', c.assign('$err', 'txtCont'));
       }).stdend('fileCont', 'txtCont', done);  
-      // same as: done(c.lastErr, locals.fileCont, locals.txtCont); stdend do not throw anything.
+      // same as: done(c.lastErr.fileCont, this.txtCont); stdend do not throw anything.
     }
 
     // work with simple callback
     function myFunc(done) {
-      C().then(function(c, locals) {
+      C().then(function(c) {
         fs.readFile('xxx.html', c.assign('$err', 'htmlCont'));
-      }).then(function(c, locals) {
+      }).then(function(c) {
         fs.readFile('xxx.tet', c.assign('$err', 'txtCont'));
       }).end('fileCont', 'txtCont', done);  
-      // same as: done(locals.fileCont, locals.txtCont);  end will throw err, if c.lastErr!
+      // same as: done(this.fileCont.txtCont);  end will throw err, if c.lastErr!
     }
 
     // work with simple callback and ignore error. (BAD WAY!!!)
     function myFunc(done) {
-      C().then(function(c, locals) {
+      C().then(function(c) {
         fs.readFile('xxx.html', c.assign('$err', 'htmlCont'));
-      }).then(function(c, locals) {
+      }).then(function(c) {
         fs.readFile('xxx.tet', c.assign('$err', 'txtCont'));
       }).end(false, 'fileCont', 'txtCont', done);  
-      // same as: done(locals.fileCont, locals.txtCont);  end do not throw anything.
+      // same as: done(this.fileCont.txtCont);  end do not throw anything.
     }
 
     // work with promise
@@ -233,7 +239,7 @@ Road Map 1.0.1 => 1.0.2
       return C().then(function() {
         fs.readFile('xxx.csv', c.assign('$err', 'fileCont'));
       }).toPromise('fileCont');  
-      // return a promise, if c.lastErr, locals.fileCont will set as promise value, otherwise promise will turn to rejected.
+      // return a promise, if c.lastErr.fileCont will set as promise value, otherwise promise will turn to rejected.
     }
 
 ### 和Promise合作
@@ -244,7 +250,7 @@ Road Map 1.0.1 => 1.0.2
     // 在逻辑块中使用Promise
     C().then(function() {
       User.find(123).then(c.accept, c.reject);
-    }).then(function(c, locals, user) {
+    }).then(function(c, user) {
       console.log(user);
       c();
     }).stdend();
@@ -255,6 +261,8 @@ API
 
 ### Start Node
 
+万事总需要一个开头。。。
+
 * S() -> Node
       开始一个默认链
 * S(opts...) -> Node
@@ -263,11 +271,13 @@ API
 
 ### Node
 
+代码块是你工作的中心。。。
+
 * Node#then(callback) -> Node
 
         增加一个正常逻辑块
-        callback: function(c, locals)
-        callback: function(c, locals, args...)
+        callback: function(c)
+        callback: function(c, args...)
 
 * Node#then(callback, callback...) -> Node
 
@@ -279,67 +289,51 @@ API
 * Node#fail(callback) -> Node
 
         增加一个异常逻辑块
-        callback: function(c, locals)
-        callback: function(c, locals, args...)
+        callback: function(c)
+        callback: function(c, args...)
 
 * Node#always(callback) -> Node
 
         增加一个通用逻辑块，无论当前是否异常，都会被执行，可用于资源回收，但是要注意c.break会跳过always！
-        callback: function(c, locals)
-        callback: function(c, locals, args...)
+        callback: function(c)
+        callback: function(c, args...)
 
 * Node#last(callback) -> null
 
         结束块，大部分时候用不到，用于在结束的时候做一些结束逻辑，或者拼接一些特殊的回调
-        callback: function(c, locals)
+        callback: function(c)
 
 * Node#end([silent Boolean], [assign\_list...], [callback]) -> null
 
         通用结束回调拼接器
         silent: [optional, Boolean, default = false] 可选参数，必须为Boolean, 
                 表示当链异常结束时是否沉默（不抛出异常）。默认为抛出异常。
-        assign_list: [optional, String] 将locals.var_name作为参数传递给callback，可以有多个。
+        assign_list: [optional, String] 将c.get(var_name)作为参数传递给callback，可以有多个。
         callback: [optional, Function] 当链结束时，会调用这个回调函数。
     
         .end('fileCont', callback) 等价于:
 
-          .last(function(c, locals) {
+          .last(function(c) {
             if (c.lastErr) {
               throw c.lastErr;
             }
-            callback(locals.fileCont);
+            callback(c.get('fileCont'));  // 即：callback(this.fileCont);
           });
 
         .end(true, '$lastErr', 'fileCont', callback) 等价于:
 
-          .last(function(c, locals) {
-            callback(c.lastErr, locals.fileCont);
+          .last(function(c) {
+            callback(c.get('$lastErr'), c.get('fileCont')); // 即：callback(c.lastErr, this.fileCont);
           });
 
-        assign_list 支持深层次的获取变量，例如
-
-        .end('mail.text', callback) 等价于:
-
-          .last(function(c, locals) {
-            if (c.lastErr) {
-              throw c.lastErr;
-            }
-            if (locals.mail === undefined) {
-              callback(undefined);
-            } else {
-              callback(locals.mail.text);
-            }
-          });
-
-        另外可以通过这个特性获取数组中的变量，主要是为了获取args[0]等，例如
-        .end('$args.0', '$args.1', callback);
+        参见`c.get`
 
 * Node#stdend([assign\_list], [callback]) -> null
 
         标准结束回调拼接器，用于适配标准回调函数
         等价于Node#end(true, 'err', [assign_list], [callback]);
 
-* Node#toPromise(var) -> Promise.<locals[var] | c.lastErr>
+* Node#toPromise(var) -> Promise.<this[var] | c.lastErr>
 
         Promise结束拼接器，并返回一个Promise
         var同样支持深层次获取
@@ -353,14 +347,14 @@ API
         循环执行给定的块，直到完成for中指定的所有任务，或者c.break()，或者某个任务返回错误
         limit: 并发数量，如果不指定默认为 1
         Array: 遍历数组，并调用回调，此时回调函数签名为：
-            callback: function(idx, value, c, locals)
+            callback: function(c, idx, value)
         Object: 遍历对象，并调用回调，此时回调函数的前面为：
-            callback: function(key, value, c, locals)
+            callback: function(c, key, value)
         iterator: 迭代器函数，`continue.js` 每次调用iterator(args)获得一个新的任务
-            如果iterator(args)返回函数，则.for会执行函数。
+            如果iterator(args)返回函数，则.for将函数作为任务执行。
             如果iterator(args)返回空，则表示所有任务迭代完成。
             iterator(args)返回的函数签名必须是：
-                callback: function(c, locals)
+                callback: function(c) // 并且，函数不能绑定this（这是一个容易范的错误）
         String: 先通过c.get()获取对应变量后，在根据变量类型判断执行上面3种情况中的一种
 
         在.for中可以通过c.break()终止.for。这时可以在下一个块中通过c.breaked判断for是否是被break终止的。
@@ -369,6 +363,8 @@ API
         注意：当.for在并行运行时发生错误或break时，.for节点不会立即结束，而是等待目前已经运行的任务都结束后才会进入下一个块。
 
 ### c
+
+控制器是`continue.js`的灵魂。。。
 
 * c(...) -> null
 
@@ -401,35 +397,22 @@ API
 
 * c.assign(...) -> assign\_wrap<c>
 
-        返回一个c的代理，这个代理将调用参数依次赋值给locals上指定的成员。
+        返回一个c的代理，这个代理将传入参数一一调用c.set(...);
         例如c.assign('a', 'b', 'c')(1, 2, 3)等价于：
-          locals.a = 1;
-          locals.b = 2;
-          locals.c = 3;
+          c.set('a', 1);
+          c.set('b', 2);
+          c.set('c', 3);
           c(1, 2, 3);
-        assign可以进行深层次的赋值，例如 c.assign('mail.text', 'xxx.0')('aaa', 'bbb') 等价于：
-          if (locals.mail === undefined) {
-            locals.mail = Hash();
-          }
-          if (locals.xxx === undefined) {
-            locals.xxx = Hash();
-          }
-          locals.mail.text = 'aaa';
-          locals.xxx[0] = 'bbb';
-          c('aaa', 'bbb');
-        当assign是，如果途径的变量不存在，则自动会构造一个Hash的实例，Hash包含一些特殊的函数便于使用和收集数据
-        当assign的名字以$打头时，assign将会操作c，例如 c.assign('$err')('test err') 等价于：
-          c.err = 'test err';
-          c('test err');
+          // 具体参见c.set
         另外可以通过c.assign()模拟函数参数个数，例如：
           c.length  ---> 0
           c.assign('$err')  ---> 1
           c.assign('$err', 'books')  ---> 2
-          c.assign(null, null)  ---> 2     // null will skip assign
+          c.assign(null, null)  ---> 2
 
-* c.locals -> locals
+* c.locas -> this
 
-        获取locals（当你参数懒得写, locals时）
+        获取上下文this变量，在块中无使用价值
 
 * c.lastErr
 
@@ -447,6 +430,24 @@ API
 
         标志c.break是否被触发
 
+* c.get(String) -> var
+
+        获取this或c上的变量，当String以$开始时，操作c，否则操作this
+        c.get('x')  // this.x
+        c.get('x.y')  // this.x === undefined ? undefined : this.x.y;
+        c.get('$lastErr')  // c.lastErr
+        c.get(null) // null
+        单独使用无特殊价值，被Node#end, Node#stdend使用
+        另外，可以通过c.get('$args.0')访问c.args[0]，这个在.end, .stdend中有特殊价值
+
+* c.set(String, val) -> null
+
+        设置this或c上的变量
+        c.set('x.y', 123)  等同于  this.x = this.x !== undefined ? this.x : Hash(); this.x.y = 123;
+        c.set('$err', 'OUT OF MEMORY')  等同于  c.err = 'OUT OF MEMORY';
+        c.set(null, 123)  // do nothing
+        单独使用无特殊价值，被c.assign使用
+        另外，可以通过c.set('x.0', 123)设置this.x[0] = 123，这个在.for节点中有特殊价值，例如c.assign('files[' + i +'].name');
 
 所有的包装器都可以层迭，例如：
 
@@ -466,17 +467,14 @@ API
 
     c.assign('user.name')('tony');
 
-这个时候，locals.user如果不存在，将会自动创建一个Hash的实例。
+这个时候，this.user如果不存在，将会自动创建一个Hash的实例。参见`c.set`
 
 * Hash#toArray -> Array
 
-        将Hash中数字下标的元素抽取出来，并创建一个数组。
+        将Hash中数字下标的元素抽取出来，并创建一个数组。这个函数在.for中尤其有价值。
 
 FAQ
 ---
-
-Q: 为什么需要`locals`，`locals`的工作完全可以由闭包完成?  
-A: `locals`的存在是为了协同 `continue.js` 的工作，它和 `continue.js` 的核心 `assign` 密不可分。
 
 Q: 为什么 `safe` 不是默认选项?  
 A: 因为`domain`更加好用，安全。
