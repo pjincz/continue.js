@@ -310,6 +310,15 @@ describe('continue.js', function () {
       done();
     });
   });
+  it('c.assign2', function(done) {
+    C().then(function(c) {
+      mock_callback(1, 'aa', c.assign2(c, 'err', this, 'y.z'));
+    }).always(function(c) {
+      assert.equal(c.lastErr, 1);
+      assert.equal(this.y.z, 'aa');
+      c();
+    }).stdend(done);
+  });
   it('c.assign', function(done) {
     C().then(function(c) {
       mock_callback(1, 'aa', c.assign('x', 'y.z'));
@@ -394,7 +403,6 @@ describe('continue.js', function () {
     var invoked = false;
     C().for(['a', 'b', 'c'], function(c, i, v) {
       assert.equal(typeof i, 'number');
-      assert.equal(c.loopKey, i);
       x += v;
       c();
     }).then(function(c) {
@@ -413,7 +421,6 @@ describe('continue.js', function () {
       c();
     }).for(10, 'xxx', function(c, i, v) {
       assert.equal(typeof i, 'number');
-      assert.equal(c.loopKey, i);
       x += v;
       c();
     }).then(function(c) {
@@ -429,7 +436,6 @@ describe('continue.js', function () {
       c();
     }).for('x', function(c, k, v) {
       assert.equal(typeof k, 'string');
-      assert.equal(c.loopKey, k);
       ks += k;
       vs += v;
       c();

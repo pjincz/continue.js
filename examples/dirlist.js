@@ -15,19 +15,24 @@ var sha1 = function(fpath, mtime, done) {
 var dir = path.join(process.argv[2] || __dirname);
 
 C().then(function(c) {
-  fs.readdir(dir, c.assign('$err', 'files')); // *1
-}).for(10, 'files', function(c, idx, fname) { // *2
-  c.set('fis.@.name', fname); // *3
-  fs.stat(path.join(dir, fname), c.assign('$err', 'fis.@.stats')); // *4
-}).for(10, 'files', function(c, idx, fname) {
-  if (this.fis[idx].stats.isFile()) {
-    sha1(path.join(dir, fname), this.fis[idx].stats.mtime, c.assign('$err', 'fis.@.sha1')); // *5
+  fs.readdir(dir, c.assign('$err')); // *1
+}).then(function(c, err, files) {
+  this.files = [];
+  files.forEach(function(file, i) {
+    this.files[i] = { name: file, path: path.join(dir, file) };
+  }, this);
+  c();
+}).for(10, 'files', function(c, idx, file) { // *2
+  fs.stat(file.path, c.assign2(c, 'err', file, 'stats')); // *4
+}).for(10, 'files', function(c, idx, file) {
+  if (file.stats.isFile()) {
+    sha1(file.path, file.stats.mtime, c.assign2(c, 'err', file, 'sha1')); // *5
   } else {
-    c.set('fis.@.sha1', '-');
+    file.sha1 = '-';
     c(); // do not forget this...
   }
 }).then(function(c) { // *6
-  this.fis.toArray().forEach(function (fi) {
+  this.files.forEach(function (fi) {
     var f = fi.stats.isFile() ? 'F' : 'D';
     console.log('[' + f + '] ' + fi.name + '  ' + fi.sha1);
   });

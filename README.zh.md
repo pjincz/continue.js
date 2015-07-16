@@ -24,7 +24,7 @@ Changes 1.0.2 => 1.0.3
 ✓ 移除locals，用this代替，使得回调函数更加简洁
 ✓ 调整.for回调函数参数格式
 ✓ c.get, c.set成为公开api
-✓ loopKey功能，详见c.get, c.set
+✓ 重新把assign2弄回来
 
 设计目标
 --------
@@ -120,9 +120,11 @@ Changes 1.0.2 => 1.0.3
 
 控制器辅助函数：
 * c.assign('a', 'b', 'c'...): 返回一个包装函数，这个函数将 `args...` 依次赋值给 `this.a`,  `this.b`,  `this.c`...
+* c.assign2(target1, 'a', target2, 'b'...): 返回一个包装函数，这个函数将 `args...` 依次赋值给 `taget1.a`,  `target2.b`...
 同时完成原有功能。`c.accept`,  `c.reject`,  `c.break`同样可以使用 `assign`:  
 
     c.accept.assign(...)
+    c.accept.assign2(...)
 
 ### this变量
 
@@ -397,6 +399,7 @@ API
         或者和assign, reject连用
 
 * c.assign(...) -> assign\_wrap<c>
+* c.assign2(...) -> assign\_wrap<c>
 
         返回一个c的代理，这个代理将传入参数一一调用c.set(...);
         例如c.assign('a', 'b', 'c')(1, 2, 3)等价于：
@@ -405,6 +408,10 @@ API
           c.set('c', 3);
           c(1, 2, 3);
           // 具体参见c.set
+        c.assign2(target1, 'a', target2, 'b')(1, 2)等价于：
+          target1.a = 1;
+          target2.b = 2;
+          c(1, 2);
         另外可以通过c.assign()模拟函数参数个数，例如：
           c.length  ---> 0
           c.assign('$err')  ---> 1
@@ -431,10 +438,6 @@ API
 
         标志c.break是否被触发
 
-* c.loopKey
-        
-        参见：c.get, c.set
-
 * c.get(String) -> var
 
         获取this或c上的变量，当String以$开始时，操作c，否则操作this
@@ -445,9 +448,6 @@ API
         单独使用无特殊价值，被Node#end, Node#stdend使用
         另外，可以通过c.get('$args.0')访问c.args[0]，这个在.end, .stdend中有特殊价值
         
-        当在循环中时，如果循环存在loopKey（例如遍历Array，loopKey为下标，遍历Object，loopKey为name）
-        可以使用@代替loopKey，例如c.get('fis.@.name')，则获取this.fis[i].name
-
 * c.set(String, val) -> null
 
         设置this或c上的变量
@@ -456,9 +456,6 @@ API
         c.set(null, 123)  // do nothing
         单独使用无特殊价值，被c.assign使用
         另外，可以通过c.set('x.0', 123)设置this.x[0] = 123，这个在.for节点中有特殊价值，例如c.assign('files[' + i +'].name');
-
-        当在循环中时，如果循环存在loopKey（例如遍历Array，loopKey为下标，遍历Object，loopKey为name）
-        可以使用@代替loopKey，例如c.set('fis.@.name', fname)，则this.fis[i].name = fname
 
 所有的包装器都可以层迭，例如：
 
