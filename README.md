@@ -1,274 +1,205 @@
-continue.js
-===========
+TOC
 
-A very easy and clean async flow controller
+Get Start
+  example 1
+  example 2
+  example 3
+Concept
+  Chain
+  Node
+    Start Node
+    Intermediate Node
+    End Node
+  Block
+  Controller
+  Parallel
+API
 
-BSD Licensed
------------------------------------------------------------
+Continue.js 1.x
+===============
 
-This software may be modified and distributed under the terms
-of the BSD license.  See the [LICENSE](https://github.com/jinchizhong/continue.js/blob/master/LICENSE) file for details.
+Node: Continue.js 1.x is not compatible with 0.x.
 
-Why
----
+Continue.js is designed for wroten clean and beautiful async code in javascript.
+I try it in my productive to ensure it it competent in real productive environment.
+And I redesign and redesign the API of continue.js to let it sample and powerful.
+I hope it can be the sword in your hand to controll the async monster.
 
-I am a newbie of node.js, I try many of sync flow controller.
+Get Start
+---------
 
-Include Promise.js, chunks.js, then.js, and more...
+### example 1
 
-All of them are too complex and hard to understand and maintain working flow.
+At the beginning, let do an easy task: Read two files from disk and send it as an email.
 
-Parts of them are too complex, such as too many nesting...
-
-Parts of them are over design, and hard to use...
-
-In other words, we need a simpler and clean one!!!
-
-Design objective
-----------------
-
-1. Most case can be done in 1 level nesting
-
-2. Instinctive
-
-Design defect
--------------
-
-C....end must matched. Otherwise, actions in continue.js will not invoked.
-
-Each block each path must end with continue action. Otherwise, actions chains will break.
-
-But, I think they are not big problems, because of if you forget it, program will not work correctly.
-
-Install
--------
-
-    npm install 'git+https://github.com/jinchizhong/continue.js'
-
-Usage
------
-
-### Basic
-
-    var C = require('continue.js');
-
-    # normal format
-    C.then(function (c) {
-      console.log('hello');
-      setTimeout(c, 1000);
-    }).then(function(c) {
-      console.log('world');
-      setTimeout(c, 1000);
-    }).then(function(c) {
-      console.log('!!!');
-      c();
-    }).end();
-
-    # or short format
-    C(function (c) {
-      console.log('hello');
-      setTimeout(c, 1000);
-    })(function (c) {
-      console.log('world');
-      setTimeout(c, 1000);
-    })(function (c) {
-      console.log('!!!');
-      c();
-    }).end();
-
-### Start Node
-
-You have 2 format to begin your continue.js
-
-    # normal format
-    C.then(function (c) {
-        ....
-    })
-
-    # short format
-    C(function (c) {
-        ....
-    })
-
-They are ipentity, you can use one of them, or mixed.
-
-### Intermediate Node
-
-After Start Node, continue.js will run `Intermediate Node` one by one.
-
-There are also 2 formats
-
-    # normal format
-    }).then(function (c) {
-
-    # short format
-    })(function (c) {
-
-### End Node
-
-`End Node` must be the last block, and necessary. If you lack the `End Node`, continue.js will not start at all.
-
-    }).end();
-
-    # for some reason, I defined an alias for end. You can use this too, if you like `done` more then `end`
-    }).done();
-
-### Forward
-
-When you transfer from one block to another block, `Forward Action` is required.
-Unlike promise.js or other libraries. If you lack `Forward Action`, continue.js will breaked.
-
-You can invoke `Transfer Action` is 3 ways:
-
-    #1 call `c()` directly
-    })(function (c) {
-      console.log('hello');
-      c();
-    })(function (c) {
-      ....
-
-    #2 pass `c` to other function as callback function
-    })(function (c) {
-      setTimeout(c, 1000);  // this block will be sleep 1s, then go to next block
-    })(function (c) {
-      ....
-
-    #3 throw a exception
-    })(function (c) {
-      throw 'test';         // for more details, see `Error flow` below
-    })(function (c) {
-      ....
-
-If you want to terminal the chain, just ignore `c()`.
-
-Warning: `c()` should not be invoked more then one time, this will make a invoke tree. This feature is still in development.
-
-### Arguments in `c()`
-
-continue.js run blocks one by one. For this, you can get arguments from the last block callback.
-You can access `c.args` for all arguments from last block, or `c.value` for first arguments from last block.
-
-    C(function (c) {
-      fs.readFile('xxx.txt', c);    // callback(err, data)
-    })(function (c) {
-      if (c.args[0]) {
-        console.log('error: ' + c.args[0]); // c.args[0] is `err`
-      } else {
-        console.log('data: ' + c.args[1]);  // c.args[1] is `data`
+    // implement with callback
+    fs.readFile('mail.txt', function(err, txt_data) {
+      if (err) {
+        throw err;
       }
-      // c.value is `err`
-      c();
-    }).end();
-
-### Through Blocks Variable
-
-If you want to share variables between blocks, A easiest way is set the variable to `c`.
-
-    C(function (c) {
-      c.server = app.listen(3000, c);
-    })(function (c) {
-      console.log('Express.js listen on http://%s:%s', c.server.address().address, c.server.address().port);
-      c();
-    }).end();
-
-Notice: `c.args` `c.value` `c.err` will changed automatic, do not use them for storage.
-Warning: `c._c_xxx` is reversed for internal use, use them may cause unexcept result.
-
-### Error flow
-
-Error flow in continue.js is similar to promise.js.
-continue.js has 2 status, `healthy` or `err`.
-When one block is complete, continue.js will become to `healthy` or `err`, depends how you finish the block.
-If you use `c()`, continue.js status will be `healthy`, if you throw a error in block, it will be `err`
-Then continue.js goto the next block. If next block matched current status, continue.js will run the block.
-And update self status. If next block not matched, continue.js will just skip the block.
-
-What is the matched? It's very easy, `healthy` match `normal block`, `err` match `err deal block`.
-All we show above is the `normal block`. `err deal block` is also very simple.
-
-    # 2 formats for normal blocks
-    }).then(function (c) {
-
-    })(function (c) {
-
-    # 3 formats for err deal block
-    }).err(function (c) {
-
-    }).err(function (err, c) {
-
-    })(function (err, c) {
-
-In normal blocks, `c.args` && `c.value` are arguments from prev blocks. And `c.err` will always be null.  
-In err deal blocks, `c.args` && `c.value` will always be empty. And `c.err` will from prev block.
-
-After all, the status of continue.js will pass to `End Node`.
-
-If the `end blocks` do not have a callback function and the status of continue.js is `err`, continue.js will throw a Error.
-
-If you do not hope continue.js throw Errors, or you want to known the last status, you can
-pass a callback function to the end, the callback argument of the `end blocks` is different to other blocks.
-    
-      ....
-    }).end(function (err, c) {
-      // err can be null or other value, depends continue.js status
+      fs.readFile('mail.html', function(err, html_data) {
+        if (err) {
+          throw err;
+        }
+        transporter.sendMail({
+          from: 'alice@example.com',
+          to: 'bob@example.com',
+          subject: 'a test email',
+          text: txt_data,
+          html: html_data
+        }, function(err, info) {
+          if (err) {
+            throw err;
+          }
+          console.log('Message sent: ' + info.response);
+        });
+      });
     });
 
-### assigner
-
-Assigner is the most powerful feature in continue.js. And lucky, it's so easy.
-
-As we see above, we have a progrem to read file content. Before we use assigner:
-
-    C(function (c) {
-      fs.readFile('xxx.txt', c);
-    })(function (c) {
-      if (c.args[0]) {
-        throw c.args[0];
-      }
-      res.send(c.args[1]);
+    // implement with continue.js
+    var C = require('continue.js');
+    C().then(function(c) {
+      fs.readFile('mail.txt', c.assign('$err', 'txt_data'));
+    }).then(function(c) {
+      fs.readFile('mail.html', c.assign('$err', 'html_data'));
+    }).then(function(c) {
+      transporter.sendMail({
+        from: 'alice@example.com',
+        to: 'bob@example.com',
+        subject: 'a test email',
+        text: this.txt_data,
+        html: this.html_data
+      }, c.assign('$err', 'info'));
+    }).then(function(c) {
+      console.log('Message sent: ' + info.response);
       c();
     }).end();
 
-It's looks not so good. Let's reconstruct is will assigner
+As you see, we let the ugly indent away. There too implement is complete same.
+If you have more files need to read, the old implement is worse.
 
-    C(function (c) {
-      fs.readFile('xxx.txt', c.assigner('err', 'fileContent'));
-    })(function (c) {
-      res.send(c.fileContent);
-      c();
-    }).end();
+OK, let me explain what happend.
 
-Assigner is a helper agent, it will assign callback argument to `c` one by one.
-And `c.err` is also assignable, and it have special design.
-If you assign a true value(such as object, string...) to `c.err`, continue.js will turn to `err` status.
-Else, continue.js will turn to `healthy` status.
+    var C = require('continue.js');  // Of course, we need this line
 
-At above code, we assign 1st callback argument to `c.err`. It's so exactly, fs.readFile will set err to 1st argument.
-If any error raised during read file, continue.js will turn to `err` automaticly.
-It's so smart. And If everything is ok, Express.js will send the content back.
-And you can deal error in `end node` together, or just let it throw to express.js
+    C()  // Construct a logic chain, we always need this in a new chain
+    .then(...)  // Add a `then node` into the chain.
+    .end()  // Finish the chain. Do not forget this
 
-Assigner has an enhance version, name assigner2. Follow code will show you what's the different:
+Just as you imagine, nodes in chain will be execute one by one.
+In this example, we read 'mail.txt' first, and then read 'mail.html', and then 
+send them as email, and then we show the result, and after all, we are done(end).
 
-    var email = {}
-    C(function (c) {
-      email.to = 'tom@example.com';
-      fs.readFile('xxx.html', c.assigner2(c, 'err', email, 'html');   // c.err = args[0], email.html = args[1]
-    })(function (c) {
-      fs.readFile('xxx.txt', c.assigner2(c, 'err', email, 'text');    // c.err = args[0], email.text = args[1]
-    })(function (c) {
-      sendmail.send(email, c);
-    }).end();
+Now, let us focus on one node.
 
-If some parameters you do not want, you can pass null to assigner to ignore it:
+    .then(function(c) {
+      fs.readFile('mail.txt', c.assign('$err', 'txt_data'));
+    })
 
-    func(c.assigner(null, 'value'));
-    func(c.assigner2(null, null, c, 'value'));   // notice: in assigner2, you must use 2 null to ignore 1 parameter
+It's looks very strange, there is no done or cb function for an async func.
+And what the `c` is, what the `c.assign` is?
 
-Assigner also can be used for simulate parameter number.
-In some case, argument number is used for distinguish callback kind.
-For example, in express, `function(res, rep, next)` is used for normal middleware,
-and `function(err, res, rep, next)` is used for error handle middleware.
-If you want simulate a 3 parameters function:
+`c` in our words is Controller. The controller of the flow.
+With `c`, we can goto the next node, drop to exception flow, break the chain...
+For example:
 
-    app.on(c.assigner('req', 'res', 'next');
+    c(); // goto the next node
+    c.accept(); // reset the error, and goto the next node
+    c.reject(); // set error, and goto the next node
+    c.break(); // break chains, jump to the last node
+
+But, what's the `c.assign`?  
+Yes, assign is not flow controll function, it's an assistant function.
+When you call `c.assign('$err', 'txt_data')(null, 'hello')`, `continue.js` will 
+capture the `null` and `'hello'` and save to some where.
+
+Yes some where, arguments in assign have 3 formats:
+
+    c.assign('txt_data')  // capture args[0] -> this.txt_data
+    c.assign('$err')  // capture args[0] -> c.err
+    c.assign([myvar, 'xxx'])  // capture args[0] -> myvar.xxx
+
+`this` is the context of the chain, you can store all your local variants here.
+Also, you can get context from `c.locals`, they are one variant.
+
+There are also some specific variants in c:
+
+    c.err  // when block(not node, you will see that's the difference in next) end
+           // `contiue.js` will check this to decide whether turn to exception flow
+    c.lastErr // the err from the previous node
+    c.args // the arguments to invoke controller from the previous node
+
+`c.assign('$err', 'txt_data')(null, 'hello')`? It's looks ugly and valueless.  
+
+Yes, if you call it in this way, it's idiotic. Let's unfold the codes:
+
+    .then(function(c) {
+      fs.readFile('mail.txt', c.assign('$err', 'txt_data'));
+    })
+
+    // equal to 
+    .then(function(c) {
+      fs.readFile('mail.txt', function(err, data) { 
+        c.assign('$err', 'txt_data')(err, data);
+      });
+    })
+
+    // equal to 
+    .then(function(c) {
+      fs.readFile('mail.txt', function(err, data) { 
+        c.err = err;  // if something wrong, chain will turn to exception status
+        c.locals.txt_data = data;
+        c(err, data);
+      });
+    })
+
+I think you may understand the valuable of `c.assign`. `c.assign` is a nuclear weapon.
+It can be used to remove 95%+ callbacks for join logic. And change them to a chain...
+
+OK, what happend if c.err is set?  
+Chain will turn to exception status, I will show you in next example.
+
+Let's go on, in summary, all code in this node do an easy thing:  
+Call fs.readFile, and assign the result to `c.err` and `this.txt_data` and goto the next node.
+
+    // 2nd node
+    .then(function(c) {
+      fs.readFile('mail.html', c.assign('$err', 'html_data'));
+    })
+
+This node is similar, read 'mail.html' => `this.html_data`, store err to c.err, and goto the next.
+    
+    // 3rd node
+    .then(function(c) {
+      transporter.sendMail({
+        from: 'alice@example.com',
+        to: 'bob@example.com',
+        subject: 'a test email',
+        text: this.txt_data,
+        html: this.html_data
+      }, c.assign('$err', 'info'));
+    })
+
+This node is similar too, we send the mail by transporter, and capture result, and go on.
+    
+    // 4th node
+    .then(function(c) {
+      console.log('Message sent: ' + info.response);
+      c(); // do not forget this
+    })
+
+This node is looks different! Yes, it's a sync node. We can see a strange `c()` in tail.
+In this node, we do not call any async func, but we have to guarantee controller is invoked.
+So we invoke `c()` directly, here. Do not forget this, elsewise all node after will not be executed.
+    
+    // last node
+    .end(); // do not forget this also
+
+At the last, we finish the chain with `.end()`. Notice: this node is needful. If you lack end node.
+The chain will not works at all.
+
+If when flow reach `.end()` with exception status, `continue.js` will raise an exception.
+
+Congratulations, you have finish the first lesson of `continue.js`.
+
+
