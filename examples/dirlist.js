@@ -23,10 +23,10 @@ C().then(function(c) {
   }, this);
   c();
 }).for(10, 'files', function(c, idx, file) { // *2
-  fs.stat(file.path, c.assign2(c, 'err', file, 'stats')); // *4
+  fs.stat(file.path, c.assign('$err', [file, 'stats'])); // *4
 }).for(10, 'files', function(c, idx, file) {
   if (file.stats.isFile()) {
-    sha1(file.path, file.stats.mtime, c.assign2(c, 'err', file, 'sha1')); // *5
+    sha1(file.path, file.stats.mtime, c.assign('$err', [file, 'sha1'])); // *5
   } else {
     file.sha1 = '-';
     c(); // do not forget this...

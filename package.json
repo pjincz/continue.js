@@ -1,6 +1,6 @@
 {
   "name": "continue.js",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A very easy and clean async flow controller",
   "main": "lib/continue.js",
   "scripts": {

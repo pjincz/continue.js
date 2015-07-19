@@ -26,6 +26,11 @@ Changes 1.0.2 => 1.0.3
 ✓ c.get, c.set成为公开api
 ✓ 重新把assign2弄回来
 
+Changes 1.0.3 => 1.0.4
+======================
+移除assign2，把功能合并到assign
+移除Hash，以后出一个工具类的库
+
 设计目标
 --------
 
@@ -120,11 +125,9 @@ Changes 1.0.2 => 1.0.3
 
 控制器辅助函数：
 * c.assign('a', 'b', 'c'...): 返回一个包装函数，这个函数将 `args...` 依次赋值给 `this.a`,  `this.b`,  `this.c`...
-* c.assign2(target1, 'a', target2, 'b'...): 返回一个包装函数，这个函数将 `args...` 依次赋值给 `taget1.a`,  `target2.b`...
 同时完成原有功能。`c.accept`,  `c.reject`,  `c.break`同样可以使用 `assign`:  
 
     c.accept.assign(...)
-    c.accept.assign2(...)
 
 ### this变量
 
@@ -399,7 +402,6 @@ API
         或者和assign, reject连用
 
 * c.assign(...) -> assign\_wrap<c>
-* c.assign2(...) -> assign\_wrap<c>
 
         返回一个c的代理，这个代理将传入参数一一调用c.set(...);
         例如c.assign('a', 'b', 'c')(1, 2, 3)等价于：
@@ -408,10 +410,6 @@ API
           c.set('c', 3);
           c(1, 2, 3);
           // 具体参见c.set
-        c.assign2(target1, 'a', target2, 'b')(1, 2)等价于：
-          target1.a = 1;
-          target2.b = 2;
-          c(1, 2);
         另外可以通过c.assign()模拟函数参数个数，例如：
           c.length  ---> 0
           c.assign('$err')  ---> 1
@@ -438,25 +436,6 @@ API
 
         标志c.break是否被触发
 
-* c.get(String) -> var
-
-        获取this或c上的变量，当String以$开始时，操作c，否则操作this
-        c.get('x')  // this.x
-        c.get('x.y')  // this.x === undefined ? undefined : this.x.y;
-        c.get('$lastErr')  // c.lastErr
-        c.get(null) // null
-        单独使用无特殊价值，被Node#end, Node#stdend使用
-        另外，可以通过c.get('$args.0')访问c.args[0]，这个在.end, .stdend中有特殊价值
-        
-* c.set(String, val) -> null
-
-        设置this或c上的变量
-        c.set('x.y', 123)  等同于  this.x = this.x !== undefined ? this.x : Hash(); this.x.y = 123;
-        c.set('$err', 'OUT OF MEMORY')  等同于  c.err = 'OUT OF MEMORY';
-        c.set(null, 123)  // do nothing
-        单独使用无特殊价值，被c.assign使用
-        另外，可以通过c.set('x.0', 123)设置this.x[0] = 123，这个在.for节点中有特殊价值，例如c.assign('files[' + i +'].name');
-
 所有的包装器都可以层迭，例如：
 
     c.break.reject('test') 等价于：
@@ -469,17 +448,30 @@ API
       c.err = 'test';
       c('test');
 
-### Hash
+* c.get(String) -> var
+* c.get([var, String]) -> var
 
-当c.assign在进行操作时，如果遇到不存在在路径上的变量，continue.js会自动建立Hash的实例，例如：
+        c.get('aaa') -> this.aaa
+        c.get('$aaa') -> c.aaa
+        c.get([x, 'aaa']) -> x.aaa
+        c.get('xx.yy') -> this.xx.yy  # 当xx不存在时会直接返回undefined，不会出错
+        c.get('$args.0') -> c.args[0]
+        c.get(null) -> null
+        单独使用无特殊价值，被Node#end, Node#stdend使用
+        另外，可以通过c.get('$args.0')访问c.args[0]，这个在.end, .stdend中有特殊价值
+        
+* c.set(String, val) -> null
+* c.set([var, String], val) -> null
 
-    c.assign('user.name')('tony');
-
-这个时候，this.user如果不存在，将会自动创建一个Hash的实例。参见`c.set`
-
-* Hash#toArray -> Array
-
-        将Hash中数字下标的元素抽取出来，并创建一个数组。这个函数在.for中尤其有价值。
+        设置变量
+        c.set('aaa', 1) -> this.aaa = 1
+        c.set('$aaa', 1) -> c.aaa = 1
+        c.set([x, 'aaa'], 1) -> x.aaa = 1
+        c.set('x.y', 1) -> this.x.y = 1  # 当this.x不存在时会自动创建为{}
+        c.set('array.1', 1) -> this.array[1] = 1  # 当this.array不存在时会自动创建为{}
+        c.set(null, 123)  // do nothing
+        单独使用无特殊价值，被c.assign使用
+        另外，可以通过c.set('x.0', 123)设置this.x[0] = 123，这个在.for节点中有特殊价值，例如c.assign('files[' + i +'].name');
 
 FAQ
 ---
@@ -489,3 +481,4 @@ A: 因为`domain`更加好用，安全。
 
 Q: 为什么存在3个结束函数?  
 A: 用了就知道了
+
