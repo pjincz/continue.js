@@ -31,6 +31,13 @@ Changes 1.0.3 => 1.0.4
 移除assign2，把功能合并到assign
 移除Hash，以后出一个工具类的库
 
+Changes 1.0.4 => 1.1.0
+======================
+c.locals 改名为 c.ctx
+移除c.lastErr，现在直接从c.err获取信息
+.end(silent...)改为.end(noise...)以更加符合直觉
+整理概念和命名
+
 设计目标
 --------
 

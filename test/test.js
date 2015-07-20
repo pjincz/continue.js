@@ -48,11 +48,11 @@ describe('continue.js', function () {
       assert(c.opts.safe);
       throw 'test';
     }).fail(function(c) {
-      assert.equal(c.lastErr, 'test');
+      assert.equal(c.err, 'test');
       throw 'test2';
     }).fail(function(c) {
-      assert.equal(c.lastErr, 'test2');
-      c();
+      assert.equal(c.err, 'test2');
+      c.accept();
     }).stdend(done);
   });
   it('unsafe', function() {
@@ -93,22 +93,24 @@ describe('continue.js', function () {
     }).then(function(c, x, y) {
       assert.equal(x, 123);
       assert.equal(y, 'hello');
-      assert.equal(c.lastErr, null);
+      assert.equal(c.err, null);
       assert.equal(c.args[0], 123);
       assert.equal(c.args[1], 'hello');
       c();
     }).stdend(done);
   });
   it('.fail(c, x, y)', function(done) {
-    C().then(function(c) {
+    C().fail(function(c) {
+      throw 'do not over here';
+    }).then(function(c) {
       c.reject(123, 'hello');
     }).fail(function(c, x, y) {
       assert.equal(x, 123);
       assert.equal(y, 'hello');
-      assert.equal(c.lastErr, 123);
+      assert.equal(c.err, 123);
       assert.equal(c.args[0], 123);
       assert.equal(c.args[1], 'hello');
-      c();
+      c.accept();
     }).stdend(done);
   });
   it('.always(c, x, y)', function(done) {
@@ -117,7 +119,7 @@ describe('continue.js', function () {
     }).always(function(c, x, y) {
       assert.equal(x, 123);
       assert.equal(y, 'hello');
-      assert.equal(c.lastErr, null);
+      assert.equal(c.err, null);
       assert.equal(c.args[0], 123);
       assert.equal(c.args[1], 'hello');
       c();
@@ -127,11 +129,10 @@ describe('continue.js', function () {
     C().then(function(c) {
       c.reject('test err');
     }).fail(function(c) {
-      assert.equal(c.err, null);
-      assert.equal(c.lastErr, 'test err');
+      assert.equal(c.err, 'test err');
       assert.equal(c.args[0], 'test err');
       assert.equal(c.args[1], undefined);
-      c();
+      c.accept();
     }).stdend(done);
   });
   it('.always', function(done) {
@@ -139,13 +140,13 @@ describe('continue.js', function () {
     C().then(function(c) {
       c.accept();
     }).always(function(c) {
-      assert.equal(c.lastErr, null);
+      assert.equal(c.err, null);
       ++times;
       c.reject();
     }).always(function(c) {
-      assert.notEqual(c.lastErr, null);
+      assert.notEqual(c.err, null);
       ++times;
-      c();
+      c.accept();
     }).then(function(c) {
       assert.equal(times, 2);
       c();
@@ -156,7 +157,7 @@ describe('continue.js', function () {
     C().then(function(c) {
       c.accept();
     }).last(function(c) {
-      assert.equal(c.lastErr, null);
+      assert.equal(c.err, null);
       x = 1;
     });
     assert.equal(x, 1);
@@ -167,7 +168,7 @@ describe('continue.js', function () {
     C().then(function(c) {
       c.reject();
     }).last(function(c) {
-      assert.notEqual(c.lastErr, null);
+      assert.notEqual(c.err, null);
       x = 1;
     });
     assert.equal(x, 1);
@@ -186,7 +187,7 @@ describe('continue.js', function () {
     try {
       C().then(function(c) {
         c.reject();
-      }).end(false);
+      }).end(true);
     } catch (err) {
       assert(err instanceof Error);
     }
@@ -194,7 +195,7 @@ describe('continue.js', function () {
   it('.end should not throw', function() {
     C().then(function(c) {
       c.reject();
-    }).end(true);
+    }).end(false);
   });
   it('.end assign', function(done) {
     C().then(function(c) {
@@ -210,7 +211,7 @@ describe('continue.js', function () {
   it('.end assign $err', function(done) {
     C().then(function(c) {
       c.reject('test err');
-    }).end(true, '$lastErr', function(err) {
+    }).end(false, '$err', function(err) {
       assert.equal(err, 'test err');
       done();
     });
@@ -265,15 +266,14 @@ describe('continue.js', function () {
     C().then(function(c) {
       c(123);
     }).always(function(c) {
-      assert.equal(c.lastErr, null);
+      assert.equal(c.err, null);
       assert.equal(c.args[0], 123);
       c.err = 'test error';
       c(234);
     }).always(function(c) {
-      assert.equal(c.lastErr, 'test error');
+      assert.equal(c.err, 'test error');
       assert.equal(c.args[0], 234);
-      assert.equal(c.err, null);
-      c();
+      c.accept();
     }).stdend(done);
   });
   it('c.accept', function(done) {
@@ -281,7 +281,7 @@ describe('continue.js', function () {
       this.err = 'test';
       c.accept(123);
     }).always(function(c) {
-      assert.equal(c.lastErr, null);
+      assert.equal(c.err, null);
       assert.equal(c.args[0], 123);
       c();
     }).stdend(done);
@@ -290,12 +290,12 @@ describe('continue.js', function () {
     C().then(function(c) {
       c.reject('test');
     }).always(function(c) {
-      assert.equal(c.lastErr, 'test');
+      assert.equal(c.err, 'test');
       assert.equal(c.args[0], 'test');
       c.reject();
     }).always(function(c) {
-      assert.notEqual(c.lastErr, 'test');
-      c();
+      assert.notEqual(c.err, 'test');
+      c.accept();
     }).stdend(done);
   });
   it('c.break', function(done) {
@@ -304,7 +304,7 @@ describe('continue.js', function () {
     }).always(function(c) {
       throw 'not over here';
     }).last(function(c) {
-      assert.equal(c.lastErr, null);
+      assert.equal(c.err, null);
       assert.equal(c.args[0], 'ohhhh');
       assert(c.breaked);
       done();
@@ -315,7 +315,7 @@ describe('continue.js', function () {
       this.my = {};
       mock_callback(1, 'aa', 'abc', c.assign('x', 'y.z', [this.my, 'x']));
     }).always(function(c) {
-      assert.equal(c.lastErr, null);
+      assert.equal(c.err, null);
       assert.equal(this.x, 1);
       assert.equal(this.y.z, 'aa');
       assert.equal(this.my.x, 'abc');
@@ -326,8 +326,8 @@ describe('continue.js', function () {
     C().then(function(c) {
       mock_callback('test err', c.assign('$err'));
     }).always(function(c) {
-      assert.equal(c.lastErr, 'test err');
-      c();
+      assert.equal(c.err, 'test err');
+      c.accept();
     }).stdend(done);
   });
   it('c.assign more then 10', function(done) {
@@ -349,9 +349,9 @@ describe('continue.js', function () {
       c();
     }).stdend(done);
   });
-  it('c.locals', function(done) {
+  it('c.ctx', function(done) {
     C().then(function(c) {
-      assert.equal(c.locals, this);
+      assert.equal(c.ctx, this);
       c();
     }).stdend(done);
   });
@@ -359,9 +359,9 @@ describe('continue.js', function () {
     C().then(function(c) {
       c.reject.assign('err2')('test error');
     }).always(function(c) {
-      assert.equal(c.lastErr, 'test error');
+      assert.equal(c.err, 'test error');
       assert.equal(this.err2, 'test error');
-      c();
+      c.accept();
     }).stdend(done);
   });
   it('promise', function(done) {
@@ -372,11 +372,11 @@ describe('continue.js', function () {
       assert.equal(c.args[0], 123);
       mock_promise(false, 234).then(c.accept, c.reject);
     }).fail(function(c) {
-      assert.equal(c.lastErr, 234);
+      assert.equal(c.err, 234);
       assert.equal(c.args[0], 234);
       mock_promise(true, 333).then(c.accept, c.reject);
     }).always(function(c) {
-      assert.equal(c.lastErr, null);
+      assert.equal(c.err, null);
       assert.equal(c.args[0], 333);
       mock_promise(true).then(c.accept, c.reject);
     }).stdend(done);
@@ -443,7 +443,7 @@ describe('continue.js', function () {
       this.times = this.times ? this.times + 1 : 1;
       c.break();
     }).always(function(c) {
-      assert.equal(c.lastErr, null);
+      assert.equal(c.err, null);
       assert.equal(this.times, 1);
       assert.equal(c.breaked, true);
       this.xxx = 1;
