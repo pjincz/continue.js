@@ -4,6 +4,26 @@ continue.js 1.x
 注意: continue.js 1.0.x目前API设计尚未完成和冻结，请不要在生产项目中使用
 注意: continue.js 1.x 和 0.x 不兼容
 
+Changes 0.x => 1.0.1
+====================
+1. 去除简短模式
+2. 开始节点从 C -> C()
+3. 默认不保护异常，并增加'safe'选项
+4. 将c分离为c, locals两个变量
+5. 移除c.value
+6. 移除c.done()
+7. 增加c.last()，作为自定义的结束节点
+8. 重新设计c.end() 并增加c.stdend()
+9. 增加c.accept / c.reject
+10. 增加c()多次调用诊断
+11. c.assigner改名为c.assign，c.assigner2改名为c.assign2
+12. c.assign支持深入修改
+13. c.assign参数模拟支持20+
+14. Node.err 改名为 Node.fail
+15. 增加Node.always
+16. 增加Node.toPromise
+17. 增加.then() 额外参数功能
+
 Changes 1.0.1 => 1.0.2
 ======================
 
