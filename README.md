@@ -597,6 +597,10 @@ API Reference
     If in loop node, break loop node.
     Else break chain, and jump to last node.
 
+* `Controller#retry(...)` -> `null`
+
+    Re-run block
+
 * `Controller#assign(assign_list)` -> `assign_wrap<Controller>`
 
     Return a proxy of c, call c.set for each assign, and then invoke c(...)

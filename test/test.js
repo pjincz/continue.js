@@ -507,4 +507,32 @@ describe('continue.js', function () {
       throw 'will not over here'
     }).stdend(done);
   });
+  it('.then retry', function(done) {
+    var n = 0;
+    C().then(function(c) {
+      if (n < 3) {
+        ++n;
+        c.retry();
+      } else {
+        c();
+      }
+    }).then(function(c) {
+      assert.equal(n, 3);
+      c();
+    }).stdend(done);
+  });
+  it('.for retry', function(done) {
+    var n = 0;
+    C().for([1, 2, 3], function(c, i, v) {
+      if (n < v) {
+        ++n;
+        c.retry();
+      } else {
+        c();
+      }
+    }).then(function(c) {
+      assert.equal(n, 3);
+      c();
+    }).stdend(done);
+  });
 });
