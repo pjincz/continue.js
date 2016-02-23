@@ -535,4 +535,12 @@ describe('continue.js', function () {
       c();
     }).stdend(done);
   });
+  it('c.wait', function(done) {
+    C().then(function(c) {
+      var promise = new Promise(function(fulfill, reject) {
+        setTimeout(fulfill, 100);
+      });
+      c.wait(promise);
+    }).stdend(done);
+  });
 });

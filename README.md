@@ -597,10 +597,6 @@ API Reference
     If in loop node, break loop node.
     Else break chain, and jump to last node.
 
-* `Controller#retry(...)` -> `null`
-
-    Re-run block
-
 * `Controller#assign(assign_list)` -> `assign_wrap<Controller>`
 
     Return a proxy of c, call c.set for each assign, and then invoke c(...)
@@ -616,6 +612,14 @@ API Reference
 All above methods can be chained:
 
 `c.accept.assign('x')` -> `assign_wrap<accept_wrap<Controller> >`
+
+* `Controller#retry(...)` -> `null`
+
+    Re-run block
+
+* `Controller#wait(...)` -> `null`
+
+    wait a promise, equal to: promise.then(c.accept, c.reject);
 
 * `Controller#get('aaa')` -> `c.ctx.aaa`
 * `Controller#get('$err')` -> `c.err`
