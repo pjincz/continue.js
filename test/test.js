@@ -543,4 +543,15 @@ describe('continue.js', function () {
       c.wait(promise);
     }).stdend(done);
   });
+  it('bug: .for executed when err', function(done) {
+    var a = [1];
+    C().then(function(c) {
+      c.reject();
+    }).for(a, function(c) {
+      throw 'will not over here';
+    }).always(function(c) {
+      assert(c.err);
+      c.accept();
+    }).stdend(done);
+  });
 });
