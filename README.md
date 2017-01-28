@@ -1,6 +1,7 @@
-
 Continue.js 1.x
 ===============
+
+[![Build Status](https://travis-ci.org/jinchizhong/continue.js.svg?branch=master)](https://travis-ci.org/jinchizhong/continue.js)
 
 Node: Continue.js 1.x is not compatible with 0.x.
 
